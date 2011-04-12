@@ -38,17 +38,30 @@
 
 (defn send-commands [host commands & {:keys [id] :or {id nil}} ]
   (with-ssh-agent [false]
-    (println (str "here" (nil? id)))
     (if (not (nil? id)) 
       (add-identity id) 
-      (do (println "inside") (add-identity (default-ssh-identity)) (println "after")))
-
+      (add-identity (default-ssh-identity)))
     (let [session (session host :strict-host-key-checking :no)]
       (with-connection session
          (loop [cmds commands results []]
            (if (nil? (first cmds)) 
              results
-             (recur (rest cmds) (conj results (second (ssh session (first cmds)))))))))))
+             (let [ret (ssh session (first cmds))]
+               (if (not (= (first ret) 0))
+                 (throw (Exception. (format "Remote cmd '%s' failed" (first cmds))))
+                 (recur (rest cmds) (conj results (second ret)))))))))))
 
 (defn send-command [host command & {:keys [id] :or {id nil}} ]
   (send-commands host [command] :id id))
+
+(defn remote [#^String host #^String cmd] (send-command host cmd))
+
+(defn rsync-cmd
+  [{:keys [key-path host user srcs dest]}]
+  (if key-path
+    (let [e-arg (format "ssh -o StrictHostKeyChecking=no -i %s" key-path)]
+      (flatten ["rsync" "-avzL" "--delete"
+                "-e" e-arg
+                srcs (str user "@" host ":" dest)]))
+    (flatten ["rsync" "-avzL" "--delete"
+              srcs (str user "@" host ":" dest)])))
