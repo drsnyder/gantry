@@ -26,11 +26,19 @@
     (flatten ["rsync" "-avzL" "--delete"
               srcs (str user "@" host ":" dest)])))
 
+(defn- gen-ssh-cmd [id] 
+    (if id
+      ["ssh" "-o" "StrictHostKeyChecking=no" "-i" id]
+      ["ssh"]))
+        
+(defn- gen-host-addr [user host]
+    (if user
+      (str user "@" host)
+      host))
+    
+
 (defn ssh-cmd 
-  [host cmd & {:keys [key-path user] :or {key-path (default-ssh-identity) user (logged-in-user)}}]
-  (if key-path
-    (let [ssh-cmd-str ["ssh" "-o" "StrictHostKeyChecking=no" "-i" key-path]]
-      (flatten [ssh-cmd-str (str user "@" host) cmd]))
-    (flatten ["ssh" (str user "@" host) cmd])))
+  [host cmd & {:keys [key-path user] :or {key-path nil  user nil}}]
+  (flatten [(gen-ssh-cmd key-path) (gen-host-addr user host) cmd]))
 
 ;(apply sh (ssh-cmd "newdy.huddler.com" "ls"))
