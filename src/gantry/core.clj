@@ -26,6 +26,7 @@
     (flatten ["rsync" "-avzL" "--delete"
               srcs (str user "@" host ":" dest)])))
 
+; what about the port?
 (defn- gen-ssh-cmd [id] 
     (if id
       ["ssh" "-o" "StrictHostKeyChecking=no" "-i" id]
@@ -37,8 +38,10 @@
       host))
     
 
-(defn ssh-cmd 
-  [host cmd & {:keys [key-path user] :or {key-path nil  user nil}}]
+(defn ssh-cmd [host cmd & {:keys [key-path user] :or {key-path nil  user nil}}]
   (flatten [(gen-ssh-cmd key-path) (gen-host-addr user host) cmd]))
+
+(defn remote [host cmd & {:keys [key-path user] :or {key-path nil user nil}}]
+    (apply clojure.contrib.shell/sh (ssh-cmd host cmd :key-path key-path :user user)))
 
 ;(apply sh (ssh-cmd "newdy.huddler.com" "ls"))
