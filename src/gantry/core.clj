@@ -1,7 +1,8 @@
 (ns gantry.core
   (:use [clojure.contrib.condition :only [raise]]
         clojure.contrib.logging
-        clojure.java.io)
+        clojure.java.io
+        clojure.contrib.str-utils)
   (:require clojure.contrib.io
             clojure.contrib.shell))
 
@@ -16,32 +17,33 @@
 
 ;(defn send-commands [host commands & {:keys [id] :or {id nil}} ]
 
-(defn rsync-cmd 
-  [host srcs dest & {:keys [key-path user] :or {key-path (default-ssh-identity) user (logged-in-user)}}]
-  (if key-path
-    (let [e-arg (format "ssh -o StrictHostKeyChecking=no -i %s" key-path)]
-      (flatten ["rsync" "-avzL" "--delete"
-                "-e" e-arg
-                srcs (str user "@" host ":" dest)]))
-    (flatten ["rsync" "-avzL" "--delete"
-              srcs (str user "@" host ":" dest)])))
 
-; what about the port?
-(defn- gen-ssh-cmd [id] 
-    (if id
-      ["ssh" "-o" "StrictHostKeyChecking=no" "-i" id]
-      ["ssh"]))
+(defn- gen-ssh-cmd [& [ id port]] 
+    (concat 
+      (if id
+        ["ssh" "-o" "StrictHostKeyChecking=no" "-i" id]
+        ["ssh"])
+      (if port
+        ["-p" (str port)]
+        [])))
+
         
 (defn- gen-host-addr [user host]
     (if user
       (str user "@" host)
       host))
     
+(defn sync 
+  [host srcs dest & {:keys [id port user] :or {id (default-ssh-identity) port nil user (logged-in-user)}}]
+  (apply clojure.contrib.shell/sh 
+         (if (or id port)
+           (let [e-arg (str-join "  " (gen-ssh-cmd id port))]
+             (flatten ["rsync" "-avzL" "--delete"
+                       "-e" e-arg
+                       srcs (str (gen-host-addr user host) ":" dest) :return-map true]))
+           (flatten ["rsync" "-avzL" "--delete"
+                     srcs (str (gen-host-addr user host) ":" dest) :return-map true]))))
 
-(defn ssh-cmd [host cmd & {:keys [key-path user] :or {key-path nil  user nil}}]
-  (flatten [(gen-ssh-cmd key-path) (gen-host-addr user host) cmd]))
+(defn remote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
+  (apply clojure.contrib.shell/sh (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])))
 
-(defn remote [host cmd & {:keys [key-path user] :or {key-path nil user nil}}]
-    (apply clojure.contrib.shell/sh (ssh-cmd host cmd :key-path key-path :user user)))
-
-;(apply sh (ssh-cmd "newdy.huddler.com" "ls"))
