@@ -18,7 +18,7 @@
 ;(defn send-commands [host commands & {:keys [id] :or {id nil}} ]
 
 
-(defn- gen-ssh-cmd [& [ id port]] 
+(defn gen-ssh-cmd [& [ id port]] 
     (concat 
       (if id
         ["ssh" "-o" "StrictHostKeyChecking=no" "-i" id]
@@ -28,22 +28,29 @@
         [])))
 
         
-(defn- gen-host-addr [user host]
+(defn gen-host-addr [user host]
     (if user
       (str user "@" host)
       host))
-    
-(defn sync 
-  [host srcs dest & {:keys [id port user] :or {id (default-ssh-identity) port nil user (logged-in-user)}}]
-  (apply clojure.contrib.shell/sh 
-         (if (or id port)
-           (let [e-arg (str-join "  " (gen-ssh-cmd id port))]
-             (flatten ["rsync" "-avzL" "--delete"
-                       "-e" e-arg
-                       srcs (str (gen-host-addr user host) ":" dest) :return-map true]))
-           (flatten ["rsync" "-avzL" "--delete"
-                     srcs (str (gen-host-addr user host) ":" dest) :return-map true]))))
 
 (defn remote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
   (apply clojure.contrib.shell/sh (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])))
+
+(defn gen-rsync-cmd [host srcs dest & {:keys [id port user] :or {id nil port nil user nil}}]
+  (if (or id port)
+    (let [e-arg (str-join "  " (gen-ssh-cmd id port))]
+      (flatten ["rsync" "-avzL" 
+                "-e" e-arg
+                srcs (str (gen-host-addr user host) ":" dest)]))
+    (flatten ["rsync" "-avzL" 
+              srcs (str (gen-host-addr user host) ":" dest)])))
+    
+
+(defn upload [host srcs dest & {:keys [id port user] :or {id (default-ssh-identity) port nil user (logged-in-user)}}]
+  (apply clojure.contrib.shell/sh (flatten [(gen-rsync-cmd host srcs dest :id id :user user :port port) [:return-map true]])))
+
+
+(defn success? [result]
+  (= 0 (:exit result)))
+
 
