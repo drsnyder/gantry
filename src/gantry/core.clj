@@ -15,9 +15,6 @@
 
 (defn logged-in-user [] (. System getProperty "user.name"))
 
-;(defn send-commands [host commands & {:keys [id] :or {id nil}} ]
-
-
 (defn gen-ssh-cmd [& [ id port]] 
     (concat 
       (if id
