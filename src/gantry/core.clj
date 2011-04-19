@@ -30,8 +30,25 @@
       (str user "@" host)
       host))
 
+(defn agent-pool [aseq]
+  (doall (map #(agent %) aseq)))
+
+(defn wait-agent-pool [agents timeout]
+  (if timeout
+    (apply await-for timeout agents)
+    (apply await-for 20000 agents)))
+
+(defn map-agent-pool [f agents]
+  (doseq [a agents] (send-off a f)))
+
+(defn deref-agent-pool [agents]
+  (doall (map #(deref %) agents)))
+
 (defn remote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
   (apply clojure.contrib.shell/sh (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])))
+
+(defn premote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}])
+
 
 (defn gen-rsync-cmd [host srcs dest & {:keys [id port user] :or {id nil port nil user nil}}]
   (if (or id port)
