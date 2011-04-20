@@ -49,10 +49,10 @@
 
 ;;;;;;;;;;;;;;;;;;;
 ; another possibility
-(defmacro deploy [role & forms]
+(defmacro hoist [role & forms]
     `(doto ~role ~@forms))
 
-(deploy (create-role ...)
+(hoist (create-role ...)
   (run "git ...")
   (run "cp -r")
   (run "..."))

@@ -54,12 +54,6 @@
       (wait-agent-pool pool)
       (deref-agent-pool pool))))
 
-;(defn ptest-keys [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
-;  (println (format "h=%s id=%s port=%s user=%s" host id port user)))
-;
-;(defn ptest-outer [host cmd & [& args]]
-;    (do (println (flatten [host cmd args]))
-;      (apply ptest-keys (filter #(not (nil? %)) (flatten [host cmd args])))))
 
 (defn gen-rsync-cmd [host srcs dest & {:keys [id port user] :or {id nil port nil user nil}}]
   (if (or id port)
