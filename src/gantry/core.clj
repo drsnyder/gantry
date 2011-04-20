@@ -47,7 +47,7 @@
 (defn remote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
   (assoc (apply clojure.contrib.shell/sh (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])) :host host))
 
-(defn premote [hosts cmd & [ & args]]
+(defn remote* [hosts cmd & [ & args]]
   (let [cf (fn [h] (apply remote (filter #(not (nil? %)) (flatten [h cmd args])))) pool (agent-pool hosts)]
     (do 
       (map-agent-pool cf pool)
@@ -72,7 +72,14 @@
     
 
 (defn upload [host srcs dest & {:keys [id port user] :or {id (default-ssh-identity) port nil user (logged-in-user)}}]
-  (apply clojure.contrib.shell/sh (flatten [(gen-rsync-cmd host srcs dest :id id :user user :port port) [:return-map true]])))
+  (assoc (apply clojure.contrib.shell/sh (flatten [(gen-rsync-cmd host srcs dest :id id :user user :port port) [:return-map true]])) :host host))
+
+(defn upload* [hosts srcs dest & [ & args]]
+  (let [cf (fn [h] (apply upload (filter #(not (nil? %)) (flatten [h srcs dest args])))) pool (agent-pool hosts)]
+    (do 
+      (map-agent-pool cf pool)
+      (wait-agent-pool pool)
+      (deref-agent-pool pool))))
 
 
 (defn success? [result]
