@@ -1,10 +1,7 @@
 (ns gantry.role
   (:use gantry.core))
 
-(defn build-agent-pool
-  ""
-  [hosts]
-  (doall (map 
+
 
 (defn create-host
   "Create a host record.
@@ -25,6 +22,7 @@
   (if f
     (filter f hosts)
     hosts)) 
+
 
 ;;;;;;;;;;;;;;;;;
 ; one possible way

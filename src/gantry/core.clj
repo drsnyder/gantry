@@ -33,10 +33,10 @@
 (defn agent-pool [aseq]
   (doall (map #(agent %) aseq)))
 
-(defn wait-agent-pool [agents timeout]
+(defn wait-agent-pool [agents & timeout]
   (if timeout
     (apply await-for timeout agents)
-    (apply await-for 20000 agents)))
+    (apply await-for 100000 agents)))
 
 (defn map-agent-pool [f agents]
   (doseq [a agents] (send-off a f)))
@@ -45,10 +45,21 @@
   (doall (map #(deref %) agents)))
 
 (defn remote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
-  (apply clojure.contrib.shell/sh (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])))
+  (assoc (apply clojure.contrib.shell/sh (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])) :host host))
 
-(defn premote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}])
+(defn premote [hosts cmd & [ & args]]
+  (let [cf (fn [h] (apply remote (filter #(not (nil? %)) (flatten [h cmd args])))) pool (agent-pool hosts)]
+    (do 
+      (map-agent-pool cf pool)
+      (wait-agent-pool pool)
+      (deref-agent-pool pool))))
 
+;(defn ptest-keys [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
+;  (println (format "h=%s id=%s port=%s user=%s" host id port user)))
+;
+;(defn ptest-outer [host cmd & [& args]]
+;    (do (println (flatten [host cmd args]))
+;      (apply ptest-keys (filter #(not (nil? %)) (flatten [host cmd args])))))
 
 (defn gen-rsync-cmd [host srcs dest & {:keys [id port user] :or {id nil port nil user nil}}]
   (if (or id port)
