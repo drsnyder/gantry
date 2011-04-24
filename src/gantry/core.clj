@@ -64,36 +64,49 @@
 (defn deref-agent-pool [agents]
   (doall (map #(deref %) agents)))
 
-(defn remote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
-  (do (debug (format "==> sending '%s' to h=%s:%s user=%s id=%s" cmd host port user id))
+(defn- user [h] (:user h))
+(defn- port [h] (:port h))
+(defn- ssh-key [h] (:id h))
+
+
+(defn remote [host cmd & [args]]
+  (do (debug (format "==> sending '%s' to h=%s:%s user=%s id=%s" cmd host (port args) (user args) (ssh-key args)))
         (assoc 
           (apply clojure.contrib.shell/sh 
-                 (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])) :host host)))
+                 (flatten [(gen-ssh-cmd (ssh-key args) (port args)) 
+                           (gen-host-addr (user args) host) cmd :return-map true])) :host host)))
 
-(defn remote* [hosts cmd & [ & args]]
-  (let [cf (fn [h] (apply remote (filter #(not (nil? %)) (flatten [h cmd args])))) pool (agent-pool hosts)]
+
+(defn remote* [hosts cmd & [args]]
+  (let [cf (fn [h] (remote h cmd args)) pool (agent-pool hosts)]
     (do 
       (map-agent-pool cf pool)
       (wait-agent-pool pool)
       (deref-agent-pool pool))))
 
 
-(defn gen-rsync-cmd [host srcs dest & {:keys [id port user] :or {id nil port nil user nil}}]
-  (if (or id port)
-    (let [e-arg (str-join "  " (gen-ssh-cmd id port))]
+(defn gen-rsync-cmd [host srcs dest & [args]]
+  (if (or (ssh-key args) (port args))
+    (let [e-arg (str-join "  " (gen-ssh-cmd (ssh-key args) (port args)))]
       (flatten ["rsync" "-avzL" 
                 "-e" e-arg
-                srcs (str (gen-host-addr user host) ":" dest)]))
+                srcs (str (gen-host-addr (user args) host) ":" dest)]))
     (flatten ["rsync" "-avzL" 
-              srcs (str (gen-host-addr user host) ":" dest)])))
+              srcs (str (gen-host-addr (user args) host) ":" dest)])))
     
 
-(defn upload [host srcs dest & {:keys [id port user] :or {id (default-ssh-identity) port nil user (logged-in-user)}}]
-  (assoc (apply clojure.contrib.shell/sh (flatten [(gen-rsync-cmd host srcs dest :id id :user user :port port) [:return-map true]])) :host host))
+(defn upload [host srcs dest & [args]]
+  (do (debug (format "==> uploading src %s to h=%s:%s => %s user=%s id=%s" 
+                     (str srcs) host (port args) dest (user args) (ssh-key args)))
+    (assoc 
+      (apply clojure.contrib.shell/sh 
+             (flatten [(gen-rsync-cmd host srcs dest args) [:return-map true]])) :host host)))
 
-(defn upload* [hosts srcs dest & [ & args]]
-  (let [cf (fn [h] (apply upload (filter #(not (nil? %)) (flatten [h srcs dest args])))) pool (agent-pool hosts)]
+(defn upload* [hosts srcs dest & [args]]
+  (let [cf (fn [h] (upload h srcs dest args)) pool (agent-pool hosts)]
     (do 
+      (debug (format "==> uploading src %s to h=%s:%s => %s user=%s id=%s" 
+                     (str srcs) (str hosts) (port args) dest (user args) (ssh-key args)))
       (map-agent-pool cf pool)
       (wait-agent-pool pool)
       (deref-agent-pool pool))))
@@ -101,7 +114,6 @@
 
 (defn success? [result]
   (= 0 (:exit result)))
-
 
 (defn test [host args]
   (println (str host " " args)))
@@ -118,13 +130,19 @@
     (filter f hosts)
     hosts)) 
 
+; fix this to push two params to the forms -- the hosts and the args so you can
+; match it like remote*
 (defmacro hoist [hosts & forms]
     `(doto ~hosts ~@forms))
 
-;(hoist [(create-host ...)]
-;  (run "git ...")
-;  (run "cp -r")
-;  (run "..."))
+
+
+(defn run 
+  "Run the given command on the given hosts
+  Throws an exception when the return code is not zero"
+  [hosts #^String cmd & [ args ]] 
+  (map #(info (validate-remote cmd %)) (remote* hosts cmd args)))
+
 
 (defn validate-remote [cmd result]
   (if (success? result)
@@ -135,12 +153,10 @@
                         (format "command '%s' failed: %s" cmd (:err result))
                         (format "command '%s' failed with no output" cmd)))))
 
-(defn run 
-"Run the given command on the given hosts
-Throws an exception when the return code is not zero"
-([hosts #^String cmd & [ & args ]] 
- (map #(println (validate-remote cmd %)) (apply remote* (flatten [hosts cmd args]))))
-([#^String cmd] (let [hosts *hosts*] (apply run (flatten [hosts cmd])))))
 
+
+(hoist [(create-host "utility001.huddler.com" :port 880)]
+  (run "uptime")
+  (run "ls -l"))
 
 
