@@ -6,6 +6,26 @@
   (:require clojure.contrib.io
             clojure.contrib.shell))
 
+(use 'clojure.contrib.condition)
+(use 'clojure.contrib.logging)
+(use 'clojure.contrib.str-utils)
+(require 'clojure.contrib.io)
+(require 'clojure.contrib.shell)
+
+
+; FIXME: make this (set-log-level! :debug)
+; (set-log-level! java.util.logging.Level/ALL) 
+(defn set-log-level! [level]
+  "Sets the root logger's level, and the level of all of its Handlers, to level.
+   Level should be one of the constants defined in java.util.logging.Level."
+  (let [logger (impl-get-log "")]
+    (.setLevel logger level)
+    (doseq [handler (.getHandlers logger)]
+      (. handler setLevel level))))
+
+
+
+(def *hosts* [])
 
 (defn hash-flip [ht]
   (reduce #(assoc %1 (ht %2) %2) {} (keys ht)))
@@ -45,7 +65,10 @@
   (doall (map #(deref %) agents)))
 
 (defn remote [host cmd & {:keys [id port user] :or {id nil port nil user nil}}]
-  (assoc (apply clojure.contrib.shell/sh (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])) :host host))
+  (do (debug (format "==> sending '%s' to h=%s:%s user=%s id=%s" cmd host port user id))
+        (assoc 
+          (apply clojure.contrib.shell/sh 
+                 (flatten [(gen-ssh-cmd id port) (gen-host-addr user host) cmd :return-map true])) :host host)))
 
 (defn remote* [hosts cmd & [ & args]]
   (let [cf (fn [h] (apply remote (filter #(not (nil? %)) (flatten [h cmd args])))) pool (agent-pool hosts)]
@@ -78,5 +101,46 @@
 
 (defn success? [result]
   (= 0 (:exit result)))
+
+
+(defn test [host args]
+  (println (str host " " args)))
+
+(defn create-host
+  "Create a host record.
+   Example: (def app001 (create-host \"app001\" {:master true}))
+  "
+  [host & {:keys [id port user tags] :or {id nil port nil user nil tags nil}}]
+  {:host host :tags (first tags)})
+
+(defn filter-hosts [hosts f]
+  (if f
+    (filter f hosts)
+    hosts)) 
+
+(defmacro hoist [hosts & forms]
+    `(doto ~hosts ~@forms))
+
+;(hoist [(create-host ...)]
+;  (run "git ...")
+;  (run "cp -r")
+;  (run "..."))
+
+(defn validate-remote [cmd result]
+  (if (success? result)
+    (format "out: %s" (:out result))
+    (raise 
+      :type :remote-failed
+      :message (if (not (empty? (:err result))) 
+                        (format "command '%s' failed: %s" cmd (:err result))
+                        (format "command '%s' failed with no output" cmd)))))
+
+(defn run 
+"Run the given command on the given hosts
+Throws an exception when the return code is not zero"
+([hosts #^String cmd & [ & args ]] 
+ (map #(println (validate-remote cmd %)) (apply remote* (flatten [hosts cmd args]))))
+([#^String cmd] (let [hosts *hosts*] (apply run (flatten [hosts cmd])))))
+
 
 

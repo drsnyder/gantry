@@ -3,25 +3,6 @@
 
 
 
-(defn create-host
-  "Create a host record.
-   Example: (def app001 (create-host \"app001\" {:master true}))
-  "
-  [host & tags]
-  {:host host :tags (first tags)})
-
-(defn create-role
-  "Create a role.
-   Example: (def web (create-role [(create-host \"host1\" {:master true}) (create-host \"host2\" {:thumb true})])) 
-  "
-  [hosts & tags]
-  {:hosts hosts :tags (first tags)})
-
-
-(defn filter-hosts [hosts f]
-  (if f
-    (filter f hosts)
-    hosts)) 
 
 
 ;;;;;;;;;;;;;;;;;
