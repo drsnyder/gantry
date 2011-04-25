@@ -6,11 +6,11 @@
   (:require clojure.contrib.io
             clojure.contrib.shell))
 
-(use 'clojure.contrib.condition)
-(use 'clojure.contrib.logging)
-(use 'clojure.contrib.str-utils)
-(require 'clojure.contrib.io)
-(require 'clojure.contrib.shell)
+;(use 'clojure.contrib.condition)
+;(use 'clojure.contrib.logging)
+;(use 'clojure.contrib.str-utils)
+;(require 'clojure.contrib.io)
+;(require 'clojure.contrib.shell)
 
 
 ; FIXME: make this (set-log-level! :debug)
@@ -115,9 +115,6 @@
 (defn success? [result]
   (= 0 (:exit result)))
 
-(defn test [host args]
-  (println (str host " " args)))
-
 (defn create-host
   "Create a host record.
    Example: (def app001 (create-host \"app001\" {:master true}))
@@ -132,16 +129,21 @@
 
 ; fix this to push two params to the forms -- the hosts and the args so you can
 ; match it like remote*
-(defmacro hoist [hosts & forms]
-    `(doto ~hosts ~@forms))
+;(defmacro hoist [hosts & forms]
+;    `(doto ~hosts ~@forms))
+
+(defmacro hoist
+  [hosts args & forms]
+   (let [ghosts (gensym) gargs (gensym)]
+     `(let [~ghosts ~hosts ~gargs ~args]
+        ~@(map (fn [f]
+                 (if (seq? f)
+                   ; run hosts cmd args
+                   `(~(first f) ~ghosts ~@(next f) ~gargs)
+                   `(~f ~ghosts)))
+               forms))))
 
 
-
-(defn run 
-  "Run the given command on the given hosts
-  Throws an exception when the return code is not zero"
-  [hosts #^String cmd & [ args ]] 
-  (map #(info (validate-remote cmd %)) (remote* hosts cmd args)))
 
 
 (defn validate-remote [cmd result]
@@ -153,9 +155,14 @@
                         (format "command '%s' failed: %s" cmd (:err result))
                         (format "command '%s' failed with no output" cmd)))))
 
+(defn run 
+  "Run the given command on the given hosts
+  Throws an exception when the return code is not zero"
+  [hosts #^String cmd & [ args ]] 
+  (map #(info (validate-remote cmd %)) (remote* hosts cmd args)))
 
 
-(hoist [(create-host "utility001.huddler.com" :port 880)]
+(hoist ["utility001.huddler.com"] {:port 880}
   (run "uptime")
   (run "ls -l"))
 
