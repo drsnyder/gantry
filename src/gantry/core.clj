@@ -158,12 +158,13 @@
 (defn run 
   "Run the given command on the given hosts
   Throws an exception when the return code is not zero"
-  [hosts #^String cmd & [ args ]] 
-  (map #(info (validate-remote cmd %)) (remote* hosts cmd args)))
+  [hosts cmd & [ args ]] 
+  ; replace info with some kind of logging
+  (doall (map #(info (validate-remote cmd %)) (remote* hosts cmd args))) hosts)
 
 
-(hoist ["utility001.huddler.com"] {:port 880}
-  (run "uptime")
-  (run "ls -l"))
+;(hoist ["utility001.huddler.com"] {:port 880}
+;  (run "uptime")
+;  (run "ls -l"))
 
 
