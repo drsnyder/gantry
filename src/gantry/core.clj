@@ -116,27 +116,16 @@
 (defn success? [result]
   (= 0 (:exit result)))
 
-;(defn create-host
-;  "Create a host record.
-;   Example: 
-;  "
-;  [host & [tags]]
-;  {:host host :tags tags})
-
-
-;(defn match-tag [rec tag]
-;  (not (empty? (intersection tag (:tags rec)))))
-;
-;; use sets to filter hosts
-;(defn filter-by-tag [recs tag] 
-;  (filter #(match-tag % tag) recs))
-;
-;; (recs-to-hosts [(create-host "utility001.huddler.com" #{:web})]) 
-;(defn recs-to-hosts [recs]
-;  (doall (reduce #(conj %1 (:host %2) [] recs))))
 
 (defmacro hoist
-  [hosts args & forms]
+  "Hoist some actions on a set of hosts. 
+
+   Examples: 
+    (hoist ['newdy.huddler.com', 'rudy.huddler.com']  (run 'uptime') (run 'ls'))
+    (hoist ['newdy.huddler.com', 'rudy.huddler.com'] {:id 'path/to/key' :port 22} (run 'uptime') (run 'ls'))
+  
+   Functions supported: run, push, or create your own!"
+  ([hosts args forms]
    (let [ghosts (gensym) gargs (gensym)]
      `(let [~ghosts ~hosts ~gargs ~args]
         ~@(map (fn [f]
@@ -145,12 +134,13 @@
                    `(~(first f) ~ghosts ~@(next f) ~gargs)
                    `(~f ~ghosts)))
                forms))))
-
+  ([hosts forms] (hoist hosts {} forms)))
 
 
 
 (defn validate-remote [cmd result]
   (if (success? result)
+    ; maybe just return result here and let the caller do something with it
     (format "out: %s" (:out result))
     (raise 
       :type :remote-failed
@@ -159,8 +149,9 @@
                         (format "command '%s' failed with no output" cmd)))))
 
 (defn run 
-  "Run the given command on the given hosts
-  Throws an exception when the return code is not zero"
+  "Run the given command on the given hosts.
+   Example: (run ['host1', 'host2'] 'uptime') 
+   Throws an exception when the return code is not zero"
   [hosts cmd & [args]] 
   ; replace info with some kind of logging
   (doall (map #(info (validate-remote cmd %)) (remote* hosts cmd args))) hosts)
