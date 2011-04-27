@@ -1,6 +1,7 @@
 (ns gantry.core
   (:use [clojure.contrib.condition :only [raise]]
         clojure.contrib.logging
+        clojure.set
         clojure.java.io
         clojure.contrib.str-utils)
   (:require clojure.contrib.io
@@ -115,22 +116,24 @@
 (defn success? [result]
   (= 0 (:exit result)))
 
-(defn create-host
-  "Create a host record.
-   Example: (def app001 (create-host \"app001\" {:master true}))
-  "
-  [host & {:keys [id port user tags] :or {id nil port nil user nil tags nil}}]
-  {:host host :tags (first tags)})
+;(defn create-host
+;  "Create a host record.
+;   Example: 
+;  "
+;  [host & [tags]]
+;  {:host host :tags tags})
 
-(defn filter-hosts [hosts f]
-  (if f
-    (filter f hosts)
-    hosts)) 
 
-; fix this to push two params to the forms -- the hosts and the args so you can
-; match it like remote*
-;(defmacro hoist [hosts & forms]
-;    `(doto ~hosts ~@forms))
+;(defn match-tag [rec tag]
+;  (not (empty? (intersection tag (:tags rec)))))
+;
+;; use sets to filter hosts
+;(defn filter-by-tag [recs tag] 
+;  (filter #(match-tag % tag) recs))
+;
+;; (recs-to-hosts [(create-host "utility001.huddler.com" #{:web})]) 
+;(defn recs-to-hosts [recs]
+;  (doall (reduce #(conj %1 (:host %2) [] recs))))
 
 (defmacro hoist
   [hosts args & forms]
@@ -158,11 +161,12 @@
 (defn run 
   "Run the given command on the given hosts
   Throws an exception when the return code is not zero"
-  [hosts cmd & [ args ]] 
+  [hosts cmd & [args]] 
   ; replace info with some kind of logging
   (doall (map #(info (validate-remote cmd %)) (remote* hosts cmd args))) hosts)
 
 
+; works 
 ;(hoist ["utility001.huddler.com"] {:port 880}
 ;  (run "uptime")
 ;  (run "ls -l"))
