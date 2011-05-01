@@ -1,9 +1,9 @@
 (ns gantry.core
   (:use [clojure.contrib.condition :only [raise]]
-        clojure.contrib.logging
         clojure.set
         clojure.java.io
-        clojure.contrib.str-utils)
+        clojure.contrib.str-utils
+        gantry.log)
   (:require clojure.contrib.io
             clojure.contrib.shell))
 
@@ -12,19 +12,6 @@
 ;(use 'clojure.contrib.str-utils)
 ;(require 'clojure.contrib.io)
 ;(require 'clojure.contrib.shell)
-
-
-; FIXME: make this (set-log-level! :debug)
-; (set-log-level! java.util.logging.Level/ALL) 
-(defn set-log-level! [level]
-  "Sets the root logger's level, and the level of all of its Handlers, to level.
-   Level should be one of the constants defined in java.util.logging.Level."
-  (let [logger (impl-get-log "")]
-    (.setLevel logger level)
-    (doseq [handler (.getHandlers logger)]
-      (. handler setLevel level))))
-
-
 
 (def *hosts* [])
 
@@ -71,7 +58,8 @@
 
 
 (defn remote [host cmd & [args]]
-  (do (debug (format "==> sending '%s' to h=%s:%s user=%s id=%s" cmd host (port args) (user args) (ssh-key args)))
+  (do (debug 
+        (format "==> sending '%s' to h=%s:%s user=%s id=%s" cmd host (port args) (user args) (ssh-key args)))
         (assoc 
           (apply clojure.contrib.shell/sh 
                  (flatten [(gen-ssh-cmd (ssh-key args) (port args)) 
@@ -121,27 +109,25 @@
   "Hoist some actions on a set of hosts. 
 
    Examples: 
-    (hoist ['newdy.huddler.com', 'rudy.huddler.com']  (run 'uptime') (run 'ls'))
-    (hoist ['newdy.huddler.com', 'rudy.huddler.com'] {:id 'path/to/key' :port 22} (run 'uptime') (run 'ls'))
+    (hoist ['newdy.huddler.com', 'rudy.huddler.com'] (run 'uptime') (run 'ls'))
   
    Functions supported: run, push, or create your own!"
-  ([hosts args forms]
+  [hosts & forms]
    (let [ghosts (gensym) gargs (gensym)]
-     `(let [~ghosts ~hosts ~gargs ~args]
+     `(let [~ghosts ~hosts ~gargs nil]
         ~@(map (fn [f]
                  (if (seq? f)
                    ; run hosts cmd args
                    `(~(first f) ~ghosts ~@(next f) ~gargs)
                    `(~f ~ghosts)))
                forms))))
-  ([hosts forms] (hoist hosts {} forms)))
 
 
 
 (defn validate-remote [cmd result]
   (if (success? result)
     ; maybe just return result here and let the caller do something with it
-    (format "out: %s" (:out result))
+    (:out result)
     (raise 
       :type :remote-failed
       :message (if (not (empty? (:err result))) 
@@ -154,11 +140,11 @@
    Throws an exception when the return code is not zero"
   [hosts cmd & [args]] 
   ; replace info with some kind of logging
-  (doall (map #(info (validate-remote cmd %)) (remote* hosts cmd args))) hosts)
+  (doall (map #(log-multi-line :info (:host %) (validate-remote cmd %)) (remote* hosts cmd args))) hosts)
 
 
 ; works 
-;(hoist ["utility001.huddler.com"] {:port 880}
+;(hoist ["utility001.huddler.com"] 
 ;  (run "uptime")
 ;  (run "ls -l"))
 
