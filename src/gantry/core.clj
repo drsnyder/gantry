@@ -101,3 +101,16 @@
       (deref-agent-pool pool))))
 
 
+(defn success? [result]
+  (= 0 (:exit result)))
+
+
+(defn validate [cmd result]
+  (if (success? result)
+    ; maybe just return result here and let the caller do something with it
+    (:out result)
+    (raise 
+      :type :remote-failed
+      :message (if (not (empty? (:err result))) 
+                        (format "command '%s' failed: %s" cmd (:err result))
+                        (format "command '%s' failed with no output" cmd)))))

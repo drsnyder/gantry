@@ -1,7 +1,13 @@
-(println "in test")
+; java -jar gantry-0.0.1-SNAPSHOT-standalone.jar --hosts newdy.huddler.com -f tmp/test.clj  deploy
+  
 (use 'gantry.core)
 (use 'gantry.hoist)
-(defn deploy [hosts]
+
+(defn deploy [hosts args]
   (do (println (str "deploying to " hosts))
-    (doall (hoist [hosts] (run "uptime")))
+    ; go back to hoist {} forms
+    (doall (hoist hosts args (run "uptime")))
       (println "done")))
+
+(defn hello [hosts args]
+  (println "hello!"))
