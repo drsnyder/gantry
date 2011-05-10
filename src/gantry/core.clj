@@ -13,7 +13,6 @@
 ;(require 'clojure.contrib.io)
 ;(require 'clojure.contrib.shell)
 
-(def *hosts* [])
 
 (defn hash-flip [ht]
   (reduce #(assoc %1 (ht %2) %2) {} (keys ht)))

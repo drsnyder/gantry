@@ -4,12 +4,12 @@
         [clojure.contrib.condition :only [handler-case raise print-stack-trace *condition*]]
         gantry.core
         gantry.log
-        gantry.hoist)
+        gantry.run)
   (:gen-class))
 
 (defn call [nm hosts args]
   (when-let [fun (ns-resolve *ns* (symbol nm))]
-    (fun hosts args)))
+    (with-resource hosts args (fun))))
 
 (defn resolve-targets [file hosts]
   (if file
