@@ -3,9 +3,15 @@
 (use 'gantry.core)
 (use 'gantry.run)
 
+
 (defn deploy []
   (do 
-    (run "uptime")
+    (run "uptime" :tags #{ :master })
+    (println "done")))
+
+(defn date []
+  (do 
+    (run "date")
     (println "done")))
 
 (defn hello []

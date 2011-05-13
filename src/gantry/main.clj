@@ -7,20 +7,21 @@
         gantry.run)
   (:gen-class))
 
-(defn call [nm hosts args]
+
+
+(defn call [nm recs args]
   (when-let [fun (ns-resolve *ns* (symbol nm))]
-    (with-resource hosts args (fun))))
+    (with-resource recs args (fun))))
 
 (defn resolve-targets [file hosts]
   (if file
     (load-file file)
-    {:hosts hosts}))
+    {:resource hosts}))
 
 (defn perform-actions [config action-file actions]
   (do
     (load-file action-file)
-    (doall 
-      (map #(call % (:hosts config) (:args config)) actions))))
+    (doall (map #(call % (:resource config) (:args config)) actions))))
 
 
 (defn error-exit [msg]
@@ -35,7 +36,7 @@
 (defn -main [& args]
   (with-command-line args
       "Gantry"
-      [[hosts          "The remote hosts" nil]
+      [[hosts          "The remote hosts" ""]
        [port           "The ssh port of the remote hosts" 22]
        [ssh-key     k  "SSH key file to use for authentication" nil]
        [action-file f  "The file to load actions from" "gantryfile"]
@@ -49,6 +50,8 @@
       (debug (str "configfile: " config-file))
       (debug (str "commands: " actions))
 
+
+      (debug (str "config: " (resolve-targets config-file (re-split #"," hosts))))
       
       (handler-case :type
                     (perform-actions (resolve-targets config-file (re-split #"," hosts)) action-file actions)
