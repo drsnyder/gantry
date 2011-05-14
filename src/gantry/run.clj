@@ -6,7 +6,20 @@
         gantry.log))
 
 (def *resource* [])
+(def *config* {})
 (def *args* nil)
+
+
+(defn get-resource [config]
+  (:resource config))
+
+(defn set-resource [config recs]
+  (assoc config :resource recs))
+
+(defn create-config [recs]
+  (set-resource {} recs))
+
+(defn get-config [] *config*)
 
 (defn create-resource [] [])
 
@@ -23,15 +36,32 @@
   (doall (reduce #(conj %1 (:host %2)) [] recs)))
 
 ; call from main with specified config :hosts :args
-(defmacro with-resource [recs args & body]
-  `(binding [*resource* ~recs *args* ~args]
+(defmacro with-args [args & body]
+  `(binding [*args* ~args]
      (do ~@body)))
 
+(defmacro task [sym & forms]
+  ; do a def in here that defines the function with one parameter
+  (let [gconfig (gensym) gret (gensym)]
+    `(defn ~sym [~gconfig] 
+       (binding [*config* ~gconfig] 
+         (let [~gret (do ~@forms)]
+           (if (= (type ~gret) clojure.lang.PersistentArrayMap)
+             ~gret
+             (get-config)))))))
 
 (defn run [cmd & {:keys [tags] :or [tags nil]}]
   ; replace info with some kind of logging
-  (let [hosts (resource-to-hosts (if tags (filter-by-tag *resource* tags) *resource*))]
-    (doall (map #(log-multi-line :info (:host %) (validate cmd %)) (remote* hosts cmd *args*))) hosts))
+  (let [config (get-config)
+        resource (get-resource config)
+        hosts (resource-to-hosts 
+                (if tags 
+                  (filter-by-tag resource tags) 
+                  resource))]
+    (doall 
+      (map #(log-multi-line :info (:host %) (validate cmd %)) 
+           (remote* hosts cmd *args*))) 
+    resource))
 
 
 

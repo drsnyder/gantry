@@ -9,9 +9,9 @@
 
 
 
-(defn call [nm recs args]
+(defn call [nm config args]
   (when-let [fun (ns-resolve *ns* (symbol nm))]
-    (with-resource recs args (fun))))
+    (with-args args (fun config))))
 
 (defn resolve-targets [file hosts]
   (if file
@@ -21,7 +21,10 @@
 (defn perform-actions [config action-file actions]
   (do
     (load-file action-file)
-    (doall (map #(call % (:resource config) (:args config)) actions))))
+    (loop [c config as actions]
+      (and (not (empty? as))
+           (recur (call (first as) c (:args c)) (rest as))))))
+    ;(doall (map #(call % config (:args config)) actions))))
 
 
 (defn error-exit [msg]
