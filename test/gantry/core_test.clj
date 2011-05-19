@@ -11,7 +11,6 @@
 
 (deftest gen-rsync-cmd-test
          (is (= ["rsync" "-avzL" "source-dir" "localhost:dest-dir"] (gen-rsync-cmd "localhost" "source-dir" "dest-dir")))
-         (is (= ["rsync" "-avzL" "-e" "ssh  -p  22" "source-dir" "localhost:dest-dir"] 
-                (gen-rsync-cmd "localhost" "source-dir" "dest-dir" :port 22))))
+         (is (= ["rsync" "-avzL" "-e" "ssh  -p  22" "source-dir" "localhost:dest-dir"] (gen-rsync-cmd "localhost" "source-dir" "dest-dir" {:port 22}))))
 
 

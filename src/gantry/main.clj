@@ -16,7 +16,7 @@
 (defn resolve-targets [file hosts]
   (if file
     (load-file file)
-    {:resource hosts}))
+    (create-config (reduce #(add %1 %2) (create-resource) hosts))))
 
 (defn perform-actions [config action-file actions]
   (do
@@ -59,7 +59,9 @@
       (handler-case :type
                     (perform-actions (resolve-targets config-file (re-split #"," hosts)) action-file actions)
                     (handle :remote-failed
-                            (do (print-stack-trace *condition*) (System/exit 1))))
+                            (do (println (str "remote failed: \n" (:message *condition*))) 
+                              (print-stack-trace *condition*) 
+                              (System/exit 1))))
 
 
       (debug (str "done .."))

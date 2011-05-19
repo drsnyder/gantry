@@ -6,13 +6,9 @@
 
 (defn deploy [config]
   (do 
-    (run (get-resource config) "uptime" :tags #{ :master })
-    (println "done")) config)
+    (run (get-resource config) "uptime" :tags #{ :master })) 
+  config)
 
-(task date 
-  (do 
-    (run "date")
-    (println "done")))
 
 (defn sethello [config]
   (do 
@@ -22,6 +18,10 @@
 (defn printconfig [config]
   (do 
     (println (str "printconfig: " config))))
+
+(task date 
+  (do 
+    (run "date")))
 
 (task updateconfig 
       ; need an add-resource
