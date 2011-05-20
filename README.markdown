@@ -24,11 +24,11 @@ interfaces may change.
           (run "date"))
 
     ; run your tasks
-    java -jar gantry-0.0.1-SNAPSHOT-standalone.jar -c config.clj -f tasks.clj
+    java -jar gantry-0.0.1-SNAPSHOT-standalone.jar -c config.clj -f tasks.clj date
 
 ## License
 
-Copyright (c) 2010 Damon Snyder 
+Copyright (c) 2011 Damon Snyder 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
