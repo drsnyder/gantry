@@ -64,7 +64,17 @@
     resource))
 
 
+;(defn upload* [hosts srcs dest & [args]]
+(defn push [srcs dest & {:keys [tags] :or [tags nil]}]
+  ; replace info with some kind of logging
+  (let [config (get-config)
+        resource (get-resource config)
+        hosts (resource-to-hosts 
+                (if tags 
+                  (filter-by-tag resource tags) 
+                  resource))]
+    (doall 
+      (map #(log-multi-line :info (:host %) (validate dest %)) 
+           (upload* hosts srcs dest *args*))) 
+    resource))
 
-;(with-resource hosts args
-;               ; call user specified functions which call run
-;               )

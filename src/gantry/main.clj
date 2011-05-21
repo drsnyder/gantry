@@ -39,7 +39,7 @@
 (defn -main [& args]
   (with-command-line args
       "Gantry"
-      [[hosts          "The remote hosts" ""]
+      [[hosts       h  "The remote hosts" ""]
        [port           "The ssh port of the remote hosts" 22]
        [ssh-key     k  "SSH key file to use for authentication" nil]
        [action-file f  "The file to load actions from" "gantryfile"]
