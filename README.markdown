@@ -7,7 +7,6 @@ interfaces may change.
 
     ; define your resources (hosts)
     ; config.clj
-    (use 'gantry.core)
     (use 'gantry.run)
 
     {:resource 
@@ -17,7 +16,6 @@ interfaces may change.
 
     ; define your tasks
     ; tasks.clj
-    
     (use 'gantry.run)
 
     (task date

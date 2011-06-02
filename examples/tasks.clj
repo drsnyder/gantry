@@ -5,4 +5,10 @@
       (run "date"))
 
 (task upload-tests
-      (push "tests" "tmp"))
+      (push "test" "tmp"))
+
+(task uptime
+      (run "uptime"))
+
+(task hostname
+      (run "hostname" :tags #{ :master }))
