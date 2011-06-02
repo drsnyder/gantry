@@ -21,8 +21,12 @@ interfaces may change.
     (task date
           (run "date"))
 
-    ; run your tasks
+    ; run your tasks with a config
     java -jar gantry-0.0.1-SNAPSHOT-standalone.jar -c config.clj -f tasks.clj date
+
+    ; or specify the hosts on the command line
+    java -jar gantry-0.0.1-SNAPSHOT-standalone.jar -H myhost.org,otherhost.org -f tasks.clj date
+    
 
 ## License
 
