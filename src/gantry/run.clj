@@ -5,26 +5,34 @@
         gantry.core
         gantry.log))
 
-(def *resource* [])
 (def *config* {})
-(def *args* nil)
 
+(defn get-config [] 
+  *config*)
 
 (defn get-resource [config]
   (:resource config))
 
+(defn get-args [config] 
+  (:args config))
+
 (defn set-resource [config recs]
   (assoc config :resource recs))
+
+(defn set-args [config args]
+  (assoc config :args args))
 
 (defn create-config [recs]
   (set-resource {} recs))
 
-(defn get-config [] *config*)
-
 (defn create-resource [] [])
 
-(defn add [recs host & {:keys [tags] :or [tags #{}]}]
+
+(defn add 
+  "Add a host to a resource."
+  [recs host & {:keys [tags] :or [tags #{}]}]
   (conj recs {:host host :tags tags}))
+
 
 (defn match-tag [rec tag]
   (not (empty? (intersection tag (:tags rec)))))
@@ -32,12 +40,13 @@
 (defn filter-by-tag [recs tag] 
   (filter #(match-tag % tag) recs))
 
-(defn resource-to-hosts [recs]
-  (doall (reduce #(conj %1 (:host %2)) [] recs)))
+(defn resource-to-hosts [recs & {:keys [tags] :or [tags nil]}]
+  (let [frecs (if tags (filter-by-tag recs tags) recs)]
+    (doall (reduce #(conj %1 (:host %2)) [] frecs))))
 
 ; call from main with specified config :hosts :args
-(defmacro with-args [args & body]
-  `(binding [*args* ~args]
+(defmacro with-config [config & body]
+  `(binding [*config* ~config]
      (do ~@body)))
 
 (defmacro task [sym & forms]
@@ -52,29 +61,21 @@
 
 (defn run [cmd & {:keys [tags] :or [tags nil]}]
   ; replace info with some kind of logging
-  (let [config (get-config)
-        resource (get-resource config)
-        hosts (resource-to-hosts 
-                (if tags 
-                  (filter-by-tag resource tags) 
-                  resource))]
+  (let [resource (get-resource (get-config))
+        hosts (resource-to-hosts resource :tags tags)]
     (doall 
       (map #(log-multi-line :info (:host %) (validate cmd %)) 
-           (remote* hosts cmd *args*))) 
+           (remote* hosts cmd (get-args (get-config))))) 
     resource))
 
 
 ;(defn upload* [hosts srcs dest & [args]]
 (defn push [srcs dest & {:keys [tags] :or [tags nil]}]
   ; replace info with some kind of logging
-  (let [config (get-config)
-        resource (get-resource config)
-        hosts (resource-to-hosts 
-                (if tags 
-                  (filter-by-tag resource tags) 
-                  resource))]
+  (let [resource (get-resource (get-config))
+        hosts (resource-to-hosts resource :tags tags)]
     (doall 
       (map #(log-multi-line :info (:host %) (validate dest %)) 
-           (upload* hosts srcs dest *args*))) 
+           (upload* hosts srcs dest (get-args (get-config))))) 
     resource))
 

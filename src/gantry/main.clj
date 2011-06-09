@@ -9,9 +9,9 @@
 
 
 
-(defn call [nm config args]
+(defn call [nm config]
   (when-let [fun (ns-resolve *ns* (symbol nm))]
-    (with-args args (fun config))))
+    (with-config config (fun))))
 
 (defn resolve-targets [file hosts]
   (if file
@@ -23,7 +23,7 @@
     (load-file action-file)
     (loop [c config as actions]
       (and (not (empty? as))
-           (recur (call (first as) c (:args c)) (rest as))))))
+           (recur (call (first as) c) (rest as))))))
     ;(doall (map #(call % config (:args config)) actions))))
 
 
@@ -39,7 +39,7 @@
 (defn -main [& args]
   (with-command-line args
       "Gantry"
-      [[hosts       H  "The remote hosts" ""]
+      [[hosts       h  "The remote hosts" ""]
        [port           "The ssh port of the remote hosts" 22]
        [ssh-key     k  "SSH key file to use for authentication" nil]
        [action-file f  "The file to load actions from" "gantryfile"]
@@ -57,7 +57,9 @@
       (debug (str "config: " (resolve-targets config-file (re-split #"," hosts))))
       
       (handler-case :type
-                    (perform-actions (resolve-targets config-file (re-split #"," hosts)) action-file actions)
+                    (let [base (resolve-targets config-file (re-split #"," hosts))
+                          config (set-args base {:prot port})]
+                      (perform-actions config action-file actions))
                     (handle :remote-failed
                             (do (println (str "remote failed: \n" (:message *condition*))) 
                               (print-stack-trace *condition*) 
