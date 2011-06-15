@@ -44,6 +44,7 @@
        [ssh-key     k  "SSH key file to use for authentication" nil]
        [action-file f  "The file to load actions from" "gantryfile"]
        [config-file c  "The file to load your configuration from" nil]
+       [arg-set  s  "Add arguments to be passed down to the actions" nil]
        actions]
     (do 
 
@@ -51,13 +52,14 @@
       (debug (str "port: " port))
       (debug (str "file: " action-file))
       (debug (str "configfile: " config-file))
+      (debug (str "config settings: " (merge-settings-to-config {} arg-set)))
       (debug (str "commands: " actions))
 
 
       (debug (str "config: " (resolve-targets config-file (re-split #"," hosts))))
       
       (handler-case :type
-                    (perform-actions (resolve-targets config-file (re-split #"," hosts)) action-file actions)
+                    (perform-actions (merge-settings-to-config (resolve-targets config-file (re-split #"," hosts)) arg-set) action-file actions)
                     (handle :remote-failed
                             (do (println (str "remote failed: \n" (:message *condition*))) 
                               (print-stack-trace *condition*) 

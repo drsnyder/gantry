@@ -12,3 +12,7 @@
 
 (task hostname
       (run "hostname" :tags #{ :master }))
+
+(task print-internal-config
+      (println (get-args))
+      (println (get-config)))
