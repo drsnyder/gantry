@@ -1,6 +1,7 @@
 (ns gantry.run
   (:use [clojure.contrib.condition :only [raise]]
         [clojure.contrib.def :only (defvar)]
+        clojure.contrib.str-utils
         clojure.set
         gantry.core
         gantry.log))
@@ -25,8 +26,18 @@
 (defn create-config [recs]
   (set-resource {} recs))
 
-(defn create-resource [] [])
+(defn get-config [] *config*)
 
+(defn get-args [] *args*)
+
+(defn split-config-set [setting] 
+  (let [tokens (re-split #"=" setting)] 
+    [(keyword (first tokens)) (second tokens)])) 
+
+(defn merge-settings-to-config [config settings]
+  (assoc config :args (reduce #(assoc %1 (first (split-config-set %2)) (second (split-config-set %2))) config (re-split #"," settings))))
+
+(defn create-resource [] [])
 
 (defn add 
   "Add a host to a resource."
