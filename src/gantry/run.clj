@@ -28,14 +28,17 @@
 
 (defn get-config [] *config*)
 
-(defn get-args [] *args*)
 
 (defn split-config-set [setting] 
   (let [tokens (re-split #"=" setting)] 
     [(keyword (first tokens)) (second tokens)])) 
 
-(defn merge-settings-to-config [config settings]
-  (assoc config :args (reduce #(assoc %1 (first (split-config-set %2)) (second (split-config-set %2))) config (re-split #"," settings))))
+(defn merge-settings [config settings]
+  (if settings
+    (merge config 
+           (reduce #(assoc %1 (first (split-config-set %2)) (second (split-config-set %2))) 
+                   config (re-split #"," settings)))
+    config))
 
 (defn create-resource [] [])
 
@@ -63,8 +66,8 @@
 (defmacro task [sym & forms]
   ; do a def in here that defines the function with one parameter
   (let [gconfig (gensym) gret (gensym)]
-    `(defn ~sym [~gconfig] 
-       (binding [*config* ~gconfig] 
+    `(defn ~sym [ & ~gconfig] 
+       (binding [*config* (if ~gconfig ~gconfig (get-config))] 
          (let [~gret (do ~@forms)]
            (if (= (type ~gret) clojure.lang.PersistentArrayMap)
              ~gret
