@@ -17,7 +17,9 @@
 (defn resolve-targets [file hosts]
   (if (not (empty? hosts))
     (create-config (reduce #(add %1 %2) (create-resource) hosts))
-    (load-file file)))
+    (if file
+      (load-file file)
+      (create-config []))))
 
 (defn perform-actions [config action-file actions]
   (do
@@ -30,20 +32,28 @@
 (defn file-exists [path]
   (. (clojure.contrib.java-utils/file path) exists))
 
+(defn valid-str [host]
+  (> (count host) 0))
+
+(defn valid-opts [opts]
+  (and
+    (or (file-exists (:gantryfile opts)) (not (= (count (:hosts opts)) 0)))
+    (> (count (filter valid-str (:tasks opts))) 0)))
 
 (defn print-error [msg & exit]
    (binding [*out* *err*]
      (do 
-       (print msg)
+       (println)
+       (println msg)
        (and exit (System/exit 1)))))
 
-(def gantry-options [(c/optional ["-H" "--hosts"      "The hosts to run the tasks on" :default []] #(vec (.split % ",")))
+(def gantry-options [(c/optional ["-H" "--hosts"      "The hosts to run the tasks on" :default ""] #(vec (filter valid-str (.split % ","))))
                      (c/optional ["-p" "--port"       "The ssh port to connect to on the remote hosts" :default 22])
                      (c/optional ["-k" "--ssh-key"    "The ssh key to use to connect to on the remote hosts" :default nil])
                      (c/optional ["-f" "--gantryfile" "Load the tasks from this file" :default "gantryfile"])
-                     (c/optional ["-t" "--tasks"      "The tasks to run" :default []] #(vec (.split % ",")))
+                     (c/optional ["-t" "--tasks"      "The tasks to run" :default ""] #(vec (.split % ",")))
                      (c/optional ["-c" "--config"     "Load the configuration / resources from this file" :default nil])
-                     (c/optional ["-s" "--args"       "Arguments to be passed down to the tasks. Takes the form key=value[,key=value]" :default {}] #(merge-settings {} %))])
+                     (c/optional ["-s" "--args"       "Arguments to be passed down to the tasks. Takes the form key=value[,key=value]" :default ""] #(merge-settings {} %))])
 
   
 
@@ -53,10 +63,10 @@
   (let [opts (apply c/clargon (cons args (flatten gantry-options)))]
 
     (do
-      ;(println "Parsed opts: " opts)
 
-      (if (or (file-exists (:gantryfile opts)) (not (empty? (:hosts opts))))
+      (if (valid-opts opts)
         (do 
+          (debug "opts: " opts)
           (handler-case :type
                         (let [base (resolve-targets (:config opts) (:hosts opts))
                               config (set-args base (merge {:port (:port opts) :ssh-key (:ssh-key opts)} (:args opts)))]
@@ -66,7 +76,7 @@
                                   (print-stack-trace *condition*) 
                                   (System/exit 1)))))
         (do 
-          (print-error "Error, we need either -f|--gantryfile, a gantryfile or -H") 
+          (print-error "Error, we need either -f|--gantryfile, a gantryfile or -H and -t") 
           (c/show-help (flatten (map #(% "" args) gantry-options)))))
         
         ; FIXME: why do we need this?

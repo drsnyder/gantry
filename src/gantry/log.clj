@@ -1,6 +1,6 @@
 (ns gantry.log
   (:use [clojure.string :only [upper-case]]
-        clojure.contrib.str-utils))
+         clojure.contrib.str-utils))
 
 ;; FIXME: make this (set-log-level! :debug)
 ;; (set-log-level! java.util.logging.Level/ALL) 
@@ -12,13 +12,30 @@
 ;    (doseq [handler (.getHandlers logger)]
 ;      (. handler setLevel level))))
 
+(def *current-log-level* :info)
+
+(def *levels* {:error 1
+               :info  2
+               :debug 3})
+
+
+(defn active-levels []
+  (do 
+    (let [current *current-log-level*]
+      (if (current *levels*)
+        (filter #(<= (% *levels*) (current *levels*)) (keys *levels*))
+        ()))))
+
+(defn active-level? [level] 
+  (> (count (filter #(= level %) (active-levels))) 0))
 
 (defn- log 
   ([level host msg]
    (log level (format "[%s] %s" host msg)))
   ([level msg]
-   (binding [*out* *err*]
-     (println (format "%s %s" (upper-case (name level)) msg)))))
+    (and (active-level? level)
+      (binding [*out* *err*]
+        (println (format "%s %s" (upper-case (name level)) msg))))))
 
 (defn debug 
   ([msg] (log :debug msg))
