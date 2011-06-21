@@ -1,6 +1,12 @@
 
 (use 'gantry.run)
 
+(task freeshell
+      (create-config
+        (-> (create-resource) 
+          (add "freeshell.net" :tags #{ :master }) 
+          (add "sdf.org"))) )
+
 (task date
       (run "date"))
 
