@@ -26,44 +26,76 @@
 (defn create-config [recs]
   (set-resource {} recs))
 
+
 (defn get-config [] *config*)
 
 
-(defn split-config-set [setting] 
+(defn split-argument-set 
+  "Arguments passed into gantry on the command line are specified as key=val 
+  pairs that are comma separated like so commit=abc123,no_purge=true."
+  [setting] 
   (let [tokens (re-split #"=" setting)] 
     [(keyword (first tokens)) (second tokens)])) 
 
-(defn merge-settings [config settings]
+(defn merge-arguments 
+  "Merge the parsed key=value arguments into an existing hash map."
+  [config settings]
   (if settings
     (merge config 
-           (reduce #(assoc %1 (first (split-config-set %2)) (second (split-config-set %2))) 
+           (reduce #(assoc %1 (first (split-argument-set %2)) (second (split-argument-set %2))) 
                    config (re-split #"," settings)))
     config))
 
 (defn create-resource [] [])
 
 (defn add 
-  "Add a host to a resource."
+  "Add a host to a resource. Specify tags by adding :tags #{}."
   [recs host & {:keys [tags] :or [tags #{}]}]
   (conj recs {:host host :tags tags}))
 
 
-(defn match-tag [rec tag]
+(defn match-tag 
+  "Determines if the specified tag matches the resource."
+  [rec tag]
   (not (empty? (intersection tag (:tags rec)))))
 
-(defn filter-by-tag [recs tag] 
+(defn filter-by-tag 
+  "Filter resources by a given tag."
+  [recs tag] 
   (filter #(match-tag % tag) recs))
 
-(defn resource-to-hosts [recs & {:keys [tags] :or [tags nil]}]
+(defn resource-to-hosts 
+  "Convert a resource to a sequence of hosts. Does the tag filtering of the resources."
+  [recs & {:keys [tags] :or [tags nil]}]
   (let [frecs (if tags (filter-by-tag recs tags) recs)]
     (doall (reduce #(conj %1 (:host %2)) [] frecs))))
 
 ; call from main with specified config :hosts :args
-(defmacro with-config [config & body]
+(defmacro with-config 
+  "Enclose a set of tasks or other operations with the given config."
+  [config & body]
   `(binding [*config* ~config]
      (do ~@body)))
 
-(defmacro task [sym & forms]
+(defmacro task 
+  "Creates a task function with the definition (def ~sym [ & config]). Checks to see if an
+  clojure.lang.PersistentArrayMap is being returned and if not, returns the current config. 
+  This allows for the chaining of tasks that alter the configuration as they are passed through 
+  the pipeline.
+
+  For example, you might call tasks apps,setup,deploy to configure your app servers, setup the install
+  of your application and deploy it. The apps task can create and return the resource configuration which
+  will then be passed along to the subsequent tasks.
+
+  You could also nest tasks within your gantryfile. For example, if you wanted to call deploy only, you could
+    (task deploy
+      (let [config (apps)]
+        (do 
+          (setup config)
+          (deploy config))))
+  
+  "
+  [sym & forms]
   ; do a def in here that defines the function with one parameter
   (let [gconfig (gensym) gret (gensym)]
     `(defn ~sym [ & ~gconfig] 
@@ -73,7 +105,17 @@
              ~gret
              (get-config)))))))
 
-(defn run [cmd & {:keys [tags] :or [tags nil]}]
+
+(defn run 
+  "Invoke the supplied cmd on the hosts specified in your resource definition. If you want to filter the command
+  based on a set of tags, supply :tags #{}. For example:
+
+  (run 'yum install httpd httpd-devel' :tags #{ :app })
+
+  This will run the supplied command only on the resources tagged with :app.
+  
+  "
+  [cmd & {:keys [tags] :or [tags nil]}]
   ; replace info with some kind of logging
   (let [resource (get-resource (get-config))
         hosts (resource-to-hosts resource :tags tags)]

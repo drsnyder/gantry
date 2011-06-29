@@ -56,7 +56,17 @@
 (defn- ssh-key [h] (:id h))
 
 
-(defn remote [host cmd & [args]]
+(defn remote 
+  "Run cmd on host. Args include :user, :port, and :id keys for the user to connect with, the 
+  port, and the ssh identity respectively. Example:
+
+  (remote \"host.com\" \"yum install -y atop\")
+  (remote \"host.com\" \"yum install -y atop\" :user \"root\")
+
+  Returns a hashmap with keys :host, :exit, :out, and :err.
+  
+  "
+  [host cmd & [args]]
   (do (debug 
         (format "==> sending '%s' to h=%s:%s user=%s id=%s" cmd host (port args) (user args) (ssh-key args)))
         (assoc 
@@ -65,7 +75,8 @@
                            (gen-host-addr (user args) host) cmd :return-map true])) :host host)))
 
 
-(defn remote* [hosts cmd & [args]]
+(defn remote* 
+  [hosts cmd & [args]]
   (let [cf (fn [h] (remote h cmd args)) pool (agent-pool hosts)]
     (do 
       (map-agent-pool cf pool)
@@ -84,6 +95,15 @@
     
 
 (defn upload [host srcs dest & [args]]
+  "rsync's srcs to dest on the given host. srcs can be a single file or a seq of files. For example:
+
+    (upload \"host.com\" \"filea\" \"/tmp\")
+    (upload \"host.com\" [\"filea\", \"fileb\"] \"/tmp\")
+
+  args supports :port, :user, and :id to specify the ssh port, the user to connect with and the ssh key to
+  authenticate with.
+  
+  "
   (do (debug (format "==> uploading src %s to h=%s:%s => %s user=%s id=%s" 
                      (str srcs) host (port args) dest (user args) (ssh-key args)))
     (assoc 

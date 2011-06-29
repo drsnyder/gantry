@@ -22,7 +22,7 @@
                      (c/optional ["-f" "--gantryfile" "Load the tasks from this file" :default "gantryfile"])
                      (c/optional ["-l" "--loglevel"   "Set the log level" :default "info"] #(if (not (empty? (intersection #{ % } valid-log-levels))) (keyword %) :info))
                      (c/optional ["-t" "--tasks"      "The tasks to run" :default ""] #(vec (.split % ",")))
-                     (c/optional ["-s" "--args"       "Arguments to be passed down to the tasks. Takes the form key=value[,key=value]" :default ""] #(if (> (count %) 0) (merge-settings {} %) {}))])
+                     (c/optional ["-s" "--args"       "Arguments to be passed down to the tasks. Takes the form key=value[,key=value]" :default ""] #(if (> (count %) 0) (merge-arguments {} %) {}))])
 
   
 
