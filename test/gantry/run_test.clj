@@ -16,7 +16,9 @@
          (is (= ["a01.example.com" "a02.example.com" "a03.example.com"] (resource-to-hosts (get-resource a-config))))
          (is (= ["a01.example.com"] (resource-to-hosts (get-resource a-config) :tags #{ :master }))))
 
-(deftest merge-settings-test
-         (println (merge-settings {} "commit=abc123")))
+(deftest merge-arguments-test
+         (let [ret (merge-arguments {} "commit=abc123,file=bla")]
+           (is (= (:commit ret) "abc123"))
+           (is (= (:file ret) "bla"))))
 
 
