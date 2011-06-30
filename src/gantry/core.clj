@@ -7,12 +7,6 @@
   (:require clojure.contrib.io
             clojure.contrib.shell))
 
-;(use 'clojure.contrib.condition)
-;(use 'clojure.contrib.logging)
-;(use 'clojure.contrib.str-utils)
-;(require 'clojure.contrib.io)
-;(require 'clojure.contrib.shell)
-
 
 (defn hash-flip [ht]
   (reduce #(assoc %1 (ht %2) %2) {} (keys ht)))
@@ -22,7 +16,14 @@
 
 (defn logged-in-user [] (. System getProperty "user.name"))
 
-(defn gen-ssh-cmd [& [ id port]] 
+(defn gen-ssh-cmd 
+  "Generates an ssh command with the key id optionally supplied in id. Same for the port.
+
+  Example:
+    (gen-ssh-cmd) ;=> \"ssh\"
+    (gen-ssh-cmd nil 22) ;=> \"ssh -p 22\"
+  "
+  [& [ id port]] 
     (concat 
       (if id
         ["ssh" "-o" "StrictHostKeyChecking=no" "-i" id]
@@ -37,22 +38,37 @@
       (str user "@" host)
       host))
 
-(defn agent-pool [aseq]
+
+(defn agent-pool 
+  "Creates an agent pool of size (count aseq) initialized with each i of aseq."
+  [aseq]
   (doall (map #(agent %) aseq)))
 
-(defn wait-agent-pool [agents & timeout]
+
+(defn wait-agent-pool 
+  "Waits for the agents of an agent pool to complete. You can optionally specify a timeout. 
+  The default is 1000000."
+  [agents & timeout]
   (if timeout
     (apply await-for timeout agents)
     (apply await-for 100000 agents)))
 
-(defn map-agent-pool [f agents]
+
+(defn map-agent-pool 
+  "Map function f across agent pool agents. Calls (send-off agent f)."
+  [f agents]
   (doseq [a agents] (send-off a f)))
 
-(defn deref-agent-pool [agents]
+
+(defn deref-agent-pool 
+  "Deref an agent pool."
+  [agents]
   (doall (map #(deref %) agents)))
 
 (defn- user [h] (:user h))
+
 (defn- port [h] (:port h))
+
 (defn- ssh-key [h] (:id h))
 
 
@@ -76,6 +92,9 @@
 
 
 (defn remote* 
+  "Invokes remote with cmd for each host in hosts. See remote. Returns a seq of HashMaps, one for
+  each host in hosts.
+  "
   [hosts cmd & [args]]
   (let [cf (fn [h] (remote h cmd args)) pool (agent-pool hosts)]
     (do 
@@ -84,7 +103,15 @@
       (deref-agent-pool pool))))
 
 
-(defn gen-rsync-cmd [host srcs dest & [args]]
+
+(defn gen-rsync-cmd 
+  "Generates the appropriate rsync command given the srcs, destination, and args. args is a HashMap 
+  optionally containing :user, :port, and :id.
+
+  Example:
+    (gen-rsync-cmd \"localhost\" \"source-dir\" \"dest-dir\" {:port 22}) ; => [\"rsync\" \"-avzL\" \"-e\" \"ssh  -p  22\" \"source-dir\" \"localhost:dest-dir\"]
+  "
+  [host srcs dest & [args]]
   (if (or (ssh-key args) (port args))
     (let [e-arg (str-join "  " (gen-ssh-cmd (ssh-key args) (port args)))]
       (flatten ["rsync" "-avzL" 
@@ -110,7 +137,11 @@
       (apply clojure.contrib.shell/sh 
              (flatten [(gen-rsync-cmd host srcs dest args) [:return-map true]])) :host host)))
 
+
 (defn upload* [hosts srcs dest & [args]]
+  "Invokes upload with srcs and dest for each host in hosts. See upload Returns a seq of HashMaps, one for
+  each host in hosts.
+  "
   (let [cf (fn [h] (upload h srcs dest args)) pool (agent-pool hosts)]
     (do 
       (debug (format "==> uploading src %s to h=%s:%s => %s user=%s id=%s" 
@@ -120,11 +151,20 @@
       (deref-agent-pool pool))))
 
 
-(defn success? [result]
+(defn success? 
+  "Check the result of a shell command to see if the exit code is 0."
+  [result]
   (= 0 (:exit result)))
 
 
-(defn validate [cmd result]
+(defn validate 
+  "Validates the command that was run. If it passes success? its valid, if not, an exception is 
+  raised of :type :remote-failed. The message contains the STDERR of the result if there is any."
+  
+  ; FIXME: i'm not sure I want this to throw an exception. should we insert a
+  ; HashMap with false?
+
+  [cmd result]
   (if (success? result)
     ; maybe just return result here and let the caller do something with it
     (:out result)
@@ -133,3 +173,4 @@
       :message (if (not (empty? (:err result))) 
                         (format "command '%s' failed: %s" cmd (:err result))
                         (format "command '%s' failed with no output" cmd)))))
+

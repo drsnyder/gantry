@@ -6,6 +6,8 @@
         gantry.core
         gantry.log))
 
+; TODO: pull, capture
+
 (def *config* {})
 
 (defn get-config [] 
@@ -70,6 +72,7 @@
   (let [frecs (if tags (filter-by-tag recs tags) recs)]
     (doall (reduce #(conj %1 (:host %2)) [] frecs))))
 
+
 ; call from main with specified config :hosts :args
 (defmacro with-config 
   "Enclose a set of tasks or other operations with the given config."
@@ -77,8 +80,12 @@
   `(binding [*config* ~config]
      (do ~@body)))
 
+
 (defmacro task 
-  "Creates a task function with the definition (def ~sym [ & config]). Checks to see if an
+  "This function should be used in your gantryfile to generate tasks that can selectively
+  be invoked from gantry.
+
+  Creates a task function with the definition (def ~sym [ & config]). Checks to see if an
   clojure.lang.PersistentArrayMap is being returned and if not, returns the current config. 
   This allows for the chaining of tasks that alter the configuration as they are passed through 
   the pipeline.
@@ -87,13 +94,18 @@
   of your application and deploy it. The apps task can create and return the resource configuration which
   will then be passed along to the subsequent tasks.
 
+  Example:
+
+  (task uptime
+    (run \"uptime\"))
+
   You could also nest tasks within your gantryfile. For example, if you wanted to call deploy only, you could
+
     (task deploy
       (let [config (apps)]
         (do 
           (setup config)
           (deploy config))))
-  
   "
   [sym & forms]
   ; do a def in here that defines the function with one parameter
@@ -107,13 +119,14 @@
 
 
 (defn run 
-  "Invoke the supplied cmd on the hosts specified in your resource definition. If you want to filter the command
+  "Should be run within a task or with-config.
+  
+  Invoke the supplied cmd on the hosts specified in your resource definition. If you want to filter the command
   based on a set of tags, supply :tags #{}. For example:
 
   (run 'yum install httpd httpd-devel' :tags #{ :app })
 
   This will run the supplied command only on the resources tagged with :app.
-  
   "
   [cmd & {:keys [tags] :or [tags nil]}]
   ; replace info with some kind of logging
@@ -125,8 +138,15 @@
     resource))
 
 
-;(defn upload* [hosts srcs dest & [args]]
-(defn push [srcs dest & {:keys [tags] :or [tags nil]}]
+(defn push 
+  "Should be run within a task or with-config.
+
+  Pushes srcs to dest on the hosts specified in your resource definition. If you want to filter the command
+  based on a set of tags, supply :tags #{}. For example:
+
+  (push [\"filea\" \"fileb\"] \"/tmp\")
+  "
+  [srcs dest & {:keys [tags] :or [tags nil]}]
   ; replace info with some kind of logging
   (let [resource (get-resource (get-config))
         hosts (resource-to-hosts resource :tags tags)]
