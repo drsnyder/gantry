@@ -1,7 +1,6 @@
 (ns gantry.main
   (:use clojure.set
         clojure.contrib.str-utils
-        clojure.contrib.java-utils
         [clojure.contrib.condition :only [handler-case raise print-stack-trace *condition*]]
         gantry.core
         gantry.log
@@ -32,10 +31,6 @@
        (println)
        (println msg)
        (and exit (System/exit 1)))))
-
-
-(defn file-exists [path]
-  (. (clojure.contrib.java-utils/file path) exists))
 
 
 

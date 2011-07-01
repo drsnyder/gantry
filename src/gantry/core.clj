@@ -5,6 +5,7 @@
         clojure.contrib.str-utils
         gantry.log)
   (:require clojure.contrib.io
+            clojure.contrib.java-utils
             clojure.contrib.shell))
 
 
@@ -14,7 +15,16 @@
 (defn default-ssh-identity []
    (.getPath (clojure.contrib.io/file (. System getProperty "user.home") ".ssh" "id_dsa")))
 
-(defn logged-in-user [] (. System getProperty "user.name"))
+(defn logged-in-user 
+  "Returns the currently logged in username"
+  [] 
+  (. System getProperty "user.name"))
+
+
+(defn file-exists 
+  [path]
+  (. (clojure.contrib.java-utils/file path) exists))
+
 
 (defn gen-ssh-cmd 
   "Generates an ssh command with the key id optionally supplied in id. Same for the port.
