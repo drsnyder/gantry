@@ -87,7 +87,7 @@
   port, and the ssh identity respectively. Example:
 
   (remote \"host.com\" \"yum install -y atop\")
-  (remote \"host.com\" \"yum install -y atop\" :user \"root\")
+  (remote \"host.com\" \"yum install -y atop\" {:user \"root\"})
 
   Returns a hashmap with keys :host, :exit, :out, and :err.
   

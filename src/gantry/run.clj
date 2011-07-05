@@ -31,6 +31,17 @@
 
 (defn get-config [] *config*)
 
+; FIXME: we need a way to merge configs within a task. OTW, your args will get
+; clobbered
+
+(defn update-config [ & {:keys [resource args] :or {resource nil args nil}}]
+  (let [config (set-resource 
+                 (get-config) 
+                 (if resource 
+                   (reduce #(conj %1 %2) (get-resource (get-config)) resource) 
+                   (get-resource (get-config))))]
+    (set-args config (merge (get-args config) args))))
+
 
 (defn split-argument-set 
   "Arguments passed into gantry on the command line are specified as key=val 

@@ -1,31 +1,74 @@
 # gantry
 
-Operations support and deployment in clojure. This is a work in progress. The
-interfaces may change.
+Operations support and deployment in clojure. Inspired by [crane](https://github.com/getwoven/crane), 
+[capistrano](capify.org), and [fabric](capify.org). 
 
-# Usage
+This is a work in progress. The interfaces may change.
 
-    ; define your resources (hosts)
-    ; config.clj
+# Quickstart
+
+## Command line tool
+
+Get gantry:
+
+    $ curl -L https://github.com/downloads/drsnyder/gantry/gantry > gantry; chmod +x gantry
+
+    $ cat > gantryfile
     (use 'gantry.run)
+    (task hello
+       (run (format "echo \"hello %s at $(hostname)\"" (:name (get-args (get-config))))))
+    ^D
 
-    {:resource 
-     (-> (create-resource) 
-      (add "my.host.com" :tags #{ :master }) 
-      (add "my.second.host.com"))}
+    $ ./gantry -H one.myhost.com,two.myhost.com -t hello -s name=bob 
+    INFO [one.myhost.com] hello bob at one.myhost.com
+    INFO [two.myhost.com] hello bob at two.myhost.com
 
-    ; define your tasks
-    ; tasks.clj
-    (use 'gantry.run)
 
-    (task date
-          (run "date"))
+Within a task, you have access to all that you normally would in clojure plus two additional 
+functions for remote operations on the specified hosts or "resources". You can `run` a 
+command on all of the hosts provided on the command line or in your configuration or you 
+can `upload` files to the same set of hosts.
 
-    ; run your tasks with a config
-    java -jar gantry-0.0.1-SNAPSHOT-standalone.jar -c config.clj -f tasks.clj date
+Examples:
 
-    ; or specify the hosts on the command line
-    java -jar gantry-0.0.1-SNAPSHOT-standalone.jar -H myhost.org,otherhost.org -f tasks.clj date
+    (run "yum install htop")
+    (upload "files/sudoers" "/etc/sudoers")
+
+If you have a more complicated (or just more) set of hosts, you can greate a task to define your
+"resources". Such a task would look like:
+    
+    (task mysite
+      (update-config :resource (-> (create-resource) 
+                                (add "one.myhost.com" :tags #{ :master }) 
+                                (add "two.myhost.com")))))
+
+With this defined, you can then run gantry like so to load up your configuration before any tasks
+are run:
+
+    $ ./gantry -t mysite,hello -s name=bob
+
+## Remote execution 
+
+The gantry.core library contains several functions for executing commands remotely via ssh. The 
+functionality described above is based off of this library. The two primary functions are `remote` 
+and `upload`, with `remote*` and `upload*` being multi-host versions of the same. The multi-host
+versions execute each command concurrently on each host using the clojure agents facility and 
+`send-off`.
+
+For example:
+
+    (remote "host.com" "yum install -y atop")
+    (remote "host.com" "yum install -y atop" {:user "deployer"})
+
+    (remote* ["host.com", "host2.com"] "yum install -y atop" {:user "deployer"})
+
+    (upload "host.com" "filea" "/tmp")
+    (upload "host.com" ["filea", "fileb"] "/tmp" {:port 222})
+
+    (upload# ["host.com", "host2.com"] ["filea", "fileb"] "/tmp" {:id "/home/deployer/my-key"})
+
+
+See the source code for more documentation.
     
 
 ## License
