@@ -35,7 +35,7 @@ Examples:
     (upload "files/sudoers" "/etc/sudoers")
 
 If you have a more complicated (or just more) set of hosts, you can greate a task to define your
-"resources". Such a task would look like:
+"resources". Such a task would look like (add this to your gantryfile to test):
     
     (task mysite
       (update-config :resource (-> (create-resource) 
