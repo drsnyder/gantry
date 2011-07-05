@@ -55,7 +55,7 @@ and `upload`, with `remote*` and `upload*` being multi-host versions of the same
 versions execute each command concurrently on each host using the clojure agents facility and 
 `send-off`.
 
-To use the core library, add `[gantry "0.0.1-SNAPSHOT"]` to your project.clj.
+To use the core library, add `[gantry "0.0.1-SNAPSHOT"]` to the dependencies in your project.clj.
 
 Examples:
 
