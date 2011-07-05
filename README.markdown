@@ -55,7 +55,9 @@ and `upload`, with `remote*` and `upload*` being multi-host versions of the same
 versions execute each command concurrently on each host using the clojure agents facility and 
 `send-off`.
 
-For example:
+To use the core library, add `[gantry "0.0.1-SNAPSHOT"]` to your project.clj.
+
+Examples:
 
     (remote "host.com" "yum install -y atop")
     (remote "host.com" "yum install -y atop" {:user "deployer"})
@@ -65,7 +67,7 @@ For example:
     (upload "host.com" "filea" "/tmp")
     (upload "host.com" ["filea", "fileb"] "/tmp" {:port 222})
 
-    (upload# ["host.com", "host2.com"] ["filea", "fileb"] "/tmp" {:id "/home/deployer/my-key"})
+    (upload* ["host.com", "host2.com"] ["filea", "fileb"] "/tmp" {:id "/home/deployer/my-key"})
 
 
 See the source code for more documentation.
