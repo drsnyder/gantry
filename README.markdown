@@ -1,7 +1,7 @@
 # gantry
 
 Operations support and deployment in clojure. Inspired by [crane](https://github.com/getwoven/crane), 
-[capistrano](capify.org), and [fabric](capify.org). 
+[capistrano](http://capify.org), and [fabric](http://fabfile.org). 
 
 This is a work in progress. The interfaces may change.
 
