@@ -11,7 +11,7 @@ This is a work in progress. The interfaces may change.
 
 Get gantry:
 
-    $ curl -L https://github.com/downloads/drsnyder/gantry/gantry > gantry; chmod +x gantry
+    $ curl -Lk https://github.com/downloads/drsnyder/gantry/gantry > gantry; chmod +x gantry
 
     $ cat > gantryfile
     (use 'gantry.run)
@@ -72,6 +72,11 @@ Examples:
 
 See the source code for more documentation.
     
+## TODO
+
+ + process the results of a command as soon as they are ready. don't wait for the whole agent pool to be derefed
+ + download/*
+ + capture?
 
 ## License
 
