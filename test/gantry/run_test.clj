@@ -22,3 +22,11 @@
            (is (= (:file ret) "bla"))))
 
 
+(deftest update-config-test
+          (binding [*config* a-config]
+            (with-config (update-config :resource 
+                                         (-> (create-resource)
+                                           (add "a04.example.com" :tags #{ :a04 })))
+                         (is (= (count (get-resource (get-config))) 4))
+                         (is (= (count (filter-by-tag (get-resource (get-config)) #{ :a04 })) 1))
+              )))
