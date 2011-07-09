@@ -49,6 +49,20 @@
       host))
 
 
+(defn apply-and-categorize-future [fut cb]
+  (if (future-done? fut)
+    (do (cb (deref fut)) :done)
+    :pending))
+
+
+(defn gpmap 
+  [f cb s]
+  (let [rets (map #(future (f % )) s)]
+    (loop [acc {:pending rets :done []}]
+      (if (> (count (get acc :pending)) 0)
+        (recur (group-by #(apply-and-categorize-future % cb) (get acc :pending)))
+        (map #(deref %) (get acc :done))))))
+
 (defn agent-pool 
   "Creates an agent pool of size (count aseq) initialized with each i of aseq."
   [aseq]
@@ -111,6 +125,19 @@
       (map-agent-pool cf pool)
       (wait-agent-pool pool)
       (deref-agent-pool pool))))
+
+(defn remote4 
+  [hosts cmd & {:keys [port user id cb] :or [port nil user nil id nil cb (fn [r] r)] :as args}]
+  (let [c (fn [h] (remote h cmd args))]
+    (gpmap c cb hosts)))
+
+(defn remote3 
+  [hosts cmd & {:keys [port user id cb] :or [port nil user nil id nil cb (fn [r] r)] :as args}]
+  (let [rets (map #(future (remote % cmd args)) hosts)]
+    (loop [acc {:pending rets :done []}]
+      (if (> (count (get acc :pending)) 0)
+        (recur (group-by #(apply-and-categorize-future % cb) (get acc :pending)))
+        (map #(deref %) (get acc :done))))))
 
 
 
