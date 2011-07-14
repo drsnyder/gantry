@@ -49,21 +49,24 @@
       host))
 
 
-(defn apply-and-categorize-future [fut cb]
+(defn categorize-future [fut cb]
   (if (future-done? fut)
-    (do (cb (deref fut)) :done)
+    :done
     :pending))
 
 
 (defn gpmap 
-  [f cb s]
+  [f cb s & {:keys [timeout]}]
   (let [rets (map #(future (f % )) s)]
-    (loop [acc {:pending rets :done []}]
-      (if (> (count (get acc :pending)) 0)
-        (do 
-          (Thread/sleep 100) 
-          (recur (group-by #(apply-and-categorize-future % cb) (concat (get acc :pending) (get acc :done)))))
-        (map #(deref %) (get acc :done))))))
+    (loop [pending rets done []]
+      (if (> (count pending) 0)
+        (do
+          (Thread/sleep (if timeout timeout 100)) 
+          (let [groups (group-by #(if (future-done? %) :done :pending) pending)]
+            (when (> (count (get groups :done)))
+              (doall (map #(cb (deref %)) (get groups :done))))
+            (recur (get groups :pending) (concat done (get groups :done)))))
+        (map #(deref %) done)))))
 
 (defn agent-pool 
   "Creates an agent pool of size (count aseq) initialized with each i of aseq."
@@ -117,30 +120,13 @@
                            (gen-host-addr (user args) host) cmd :return-map true])) :host host)))
 
 
-;(defn remote* 
-;  "Invokes remote with cmd for each host in hosts. See remote. Returns a seq of HashMaps, one for
-;  each host in hosts.
-;  "
-;  [hosts cmd & [args]]
-;  (let [cf (fn [h] (remote h cmd args)) pool (agent-pool hosts)]
-;    (do 
-;      (map-agent-pool cf pool)
-;      (wait-agent-pool pool)
-;      (deref-agent-pool pool))))
 
 (defn remote* 
-  [hosts cmd & {:keys [port user id cb] :as args}]
+  [hosts cmd & [args]]
   (let [c (fn [h] (remote h cmd args))
+        cb (get args :cb)
         vcb (if (fn? cb) cb (fn [r] r))]
     (gpmap c vcb hosts)))
-
-(defn remote3 
-  [hosts cmd & {:keys [port user id cb] :or [port nil user nil id nil cb (fn [r] r)] :as args}]
-  (let [rets (map #(future (remote % cmd args)) hosts)]
-    (loop [acc {:pending rets :done []}]
-      (if (> (count (get acc :pending)) 0)
-        (recur (group-by #(apply-and-categorize-future % cb) (get acc :pending)))
-        (map #(deref %) (get acc :done))))))
 
 
 

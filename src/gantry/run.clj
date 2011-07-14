@@ -143,10 +143,7 @@
   ; replace info with some kind of logging
   (let [resource (get-resource (get-config))
         hosts (resource-to-hosts resource :tags tags)]
-    (doall 
-      (map #(log-multi-line :info (:host %) (validate cmd %)) 
-           (remote* hosts cmd (get-args (get-config))))) 
-    resource))
+      (doall (remote* hosts cmd (merge (get-args (get-config)) { :cb (fn [h] (log-multi-line :info (:host h) (validate cmd h)))} )))))
 
 
 (defn push 

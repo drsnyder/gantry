@@ -8,6 +8,12 @@
                   (add "a02.example.com")
                   (add "a03.example.com"))))
 
+(def l-config (create-config 
+                (-> (create-resource) 
+                  (add "localhost" :tags #{ :master }) 
+                  (add "localhost")
+                  (add "localhost"))))
+
 (deftest create-resource-test
          (is (empty? (get-resource (create-config (create-resource)))))
          (is (not (empty? (get-resource a-config)))))
@@ -28,5 +34,11 @@
                                          (-> (create-resource)
                                            (add "a04.example.com" :tags #{ :a04 })))
                          (is (= (count (get-resource (get-config))) 4))
-                         (is (= (count (filter-by-tag (get-resource (get-config)) #{ :a04 })) 1))
-              )))
+                         (is (= (count (filter-by-tag (get-resource (get-config)) #{ :a04 })) 1)))))
+
+(deftest config-run-test
+         (binding [*config* l-config]
+           (let [ret (run "uptime")]
+             (is (= (count ret) (count (get-resource (get-config)))))
+             )))
+
