@@ -77,6 +77,7 @@ See the source code for more documentation.
  + process the results of a command as soon as they are ready. don't wait for the whole agent pool to be derefed
  + download/*
  + capture?
+ + local exec
 
 ## License
 

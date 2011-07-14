@@ -60,7 +60,9 @@
   (let [rets (map #(future (f % )) s)]
     (loop [acc {:pending rets :done []}]
       (if (> (count (get acc :pending)) 0)
-        (recur (group-by #(apply-and-categorize-future % cb) (get acc :pending)))
+        (do 
+          (Thread/sleep 100) 
+          (recur (group-by #(apply-and-categorize-future % cb) (concat (get acc :pending) (get acc :done)))))
         (map #(deref %) (get acc :done))))))
 
 (defn agent-pool 
@@ -115,21 +117,22 @@
                            (gen-host-addr (user args) host) cmd :return-map true])) :host host)))
 
 
-(defn remote* 
-  "Invokes remote with cmd for each host in hosts. See remote. Returns a seq of HashMaps, one for
-  each host in hosts.
-  "
-  [hosts cmd & [args]]
-  (let [cf (fn [h] (remote h cmd args)) pool (agent-pool hosts)]
-    (do 
-      (map-agent-pool cf pool)
-      (wait-agent-pool pool)
-      (deref-agent-pool pool))))
+;(defn remote* 
+;  "Invokes remote with cmd for each host in hosts. See remote. Returns a seq of HashMaps, one for
+;  each host in hosts.
+;  "
+;  [hosts cmd & [args]]
+;  (let [cf (fn [h] (remote h cmd args)) pool (agent-pool hosts)]
+;    (do 
+;      (map-agent-pool cf pool)
+;      (wait-agent-pool pool)
+;      (deref-agent-pool pool))))
 
-(defn remote4 
-  [hosts cmd & {:keys [port user id cb] :or [port nil user nil id nil cb (fn [r] r)] :as args}]
-  (let [c (fn [h] (remote h cmd args))]
-    (gpmap c cb hosts)))
+(defn remote* 
+  [hosts cmd & {:keys [port user id cb] :as args}]
+  (let [c (fn [h] (remote h cmd args))
+        vcb (if (fn? cb) cb (fn [r] r))]
+    (gpmap c vcb hosts)))
 
 (defn remote3 
   [hosts cmd & {:keys [port user id cb] :or [port nil user nil id nil cb (fn [r] r)] :as args}]
