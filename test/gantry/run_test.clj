@@ -1,6 +1,7 @@
 (ns gantry.run-test
   (:use clojure.test
-     gantry.run))
+        [clojure.contrib.condition :only [handler-case raise print-stack-trace *condition*]]
+        gantry.run))
 
 (def a-config (create-config 
                 (-> (create-resource) 
@@ -41,4 +42,12 @@
            (let [ret (run "uptime")]
              (is (= (count ret) (count (get-resource (get-config)))))
              )))
+
+(deftest config-run-fail-test
+         (binding [*config* l-config]
+           (is (= :caught (handler-case :type
+                                        (run "exit 1")
+                                        (handle :remote-failed
+                                                :caught))))))
+
 
