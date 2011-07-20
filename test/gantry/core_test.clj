@@ -67,7 +67,8 @@
            (is (not (file-exists "/tmp/gantry-tests/LICENSE")))))
          
 (deftest upload*-test
-         (let [res (upload* ["localhost" "localhost"] "test" "/tmp")]
+         (clojure.contrib.shell/sh "rm" "-rf" "/tmp/upload-star-test")
+         (let [res (upload* ["localhost" "localhost"] "test" "/tmp/upload-star-test")]
            (is (= (count res) 2))
            (is (= (reduce #(+ %1 (:exit %2)) 0 res) 0))))
 

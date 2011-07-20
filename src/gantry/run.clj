@@ -158,8 +158,6 @@
   ; replace info with some kind of logging
   (let [resource (get-resource (get-config))
         hosts (resource-to-hosts resource :tags tags)]
-    (doall 
-      (map #(log-multi-line :info (:host %) (validate dest %)) 
-           (upload* hosts srcs dest (get-args (get-config))))) 
-    resource))
-
+    (doall (upload* hosts srcs dest 
+                    (merge (get-args (get-config)) 
+                           {:cb (fn [h] (log-multi-line :info (:host h) (validate cmd h)))})))))

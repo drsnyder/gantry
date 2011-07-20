@@ -40,8 +40,7 @@
 (deftest config-run-test
          (binding [*config* l-config]
            (let [ret (run "uptime")]
-             (is (= (count ret) (count (get-resource (get-config)))))
-             )))
+             (is (= (count ret) (count (get-resource (get-config))))))))
 
 (deftest config-run-fail-test
          (binding [*config* l-config]
@@ -49,5 +48,12 @@
                                         (run "exit 1")
                                         (handle :remote-failed
                                                 :caught))))))
+
+(deftest config-push-test
+         (clojure.contrib.shell/sh "rm" "-rf" "/tmp/gantry-push-test")
+         (binding [*config* l-config]
+           (let [ret (push "test" "/tmp/gantry-push-test")]
+             (is (= (count ret) (count (get-resource (get-config))))))))
+
 
 

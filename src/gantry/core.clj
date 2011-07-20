@@ -56,12 +56,17 @@
 
 
 (defn gpmap 
-  [f cb s & {:keys [timeout]}]
+  "Like pmap, but maps f over s calling cb when each future is done. This was done so that with
+  cb, you can get immediate feedback when a future has completed. Its used for the * functions below.
+
+  The default 'pause' is 100ms. This can be changed with the :timeout key.
+  "
+  [f cb s & {:keys [pause]}]
   (let [rets (map #(future (f % )) s)]
     (loop [pending rets done []]
       (if (> (count pending) 0)
         (do
-          (Thread/sleep (if timeout timeout 100)) 
+          (Thread/sleep (if pause pause 100)) 
           (let [groups (group-by #(if (future-done? %) :done :pending) pending)]
             (when (> (count (get groups :done)))
               (doall (map #(cb (deref %)) (get groups :done))))
@@ -166,19 +171,24 @@
       (apply clojure.contrib.shell/sh 
              (flatten [(gen-rsync-cmd host srcs dest args) [:return-map true]])) :host host)))
 
+  ;[hosts cmd & [args]]
+  ;(let [c (fn [h] (remote h cmd args))
+  ;      cb (get args :cb)
+  ;      vcb (if (fn? cb) cb (fn [r] r))]
+  ;  (gpmap c vcb hosts)))
 
 (defn upload* 
   "Invokes upload with srcs and dest for each host in hosts. See upload Returns a seq of HashMaps, one for
   each host in hosts.
   "
   [hosts srcs dest & [args]]
-  (let [cf (fn [h] (upload h srcs dest args)) pool (agent-pool hosts)]
+  (let [c (fn [h] (upload h srcs dest args)) 
+        cb (get args :cb)
+        vcb (if (fn? cb) cb (fn [r] r))]
     (do 
       (debug (format "==> uploading src %s to h=%s:%s => %s user=%s id=%s" 
                      (str srcs) (str hosts) (port args) dest (user args) (ssh-key args)))
-      (map-agent-pool cf pool)
-      (wait-agent-pool pool)
-      (deref-agent-pool pool))))
+      (gpmap c vcb hosts))))
 
 
 (defn local 
