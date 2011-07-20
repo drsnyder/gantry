@@ -122,6 +122,9 @@
 
 
 (defn remote* 
+  "Invokes remote with cmd for each host in hosts. See remote. Returns a seq of HashMaps, one for
+  each host in hosts.
+  "
   [hosts cmd & [args]]
   (let [c (fn [h] (remote h cmd args))
         cb (get args :cb)
@@ -164,10 +167,11 @@
              (flatten [(gen-rsync-cmd host srcs dest args) [:return-map true]])) :host host)))
 
 
-(defn upload* [hosts srcs dest & [args]]
+(defn upload* 
   "Invokes upload with srcs and dest for each host in hosts. See upload Returns a seq of HashMaps, one for
   each host in hosts.
   "
+  [hosts srcs dest & [args]]
   (let [cf (fn [h] (upload h srcs dest args)) pool (agent-pool hosts)]
     (do 
       (debug (format "==> uploading src %s to h=%s:%s => %s user=%s id=%s" 
@@ -175,6 +179,13 @@
       (map-agent-pool cf pool)
       (wait-agent-pool pool)
       (deref-agent-pool pool))))
+
+
+(defn local 
+  "Execute the given cmd locally.  Returns a hashmap with keys :exit, :out, and :err.
+  "
+  [cmd]
+  (clojure.contrib.shell/sh cmd :return-map true))
 
 
 (defn success? 

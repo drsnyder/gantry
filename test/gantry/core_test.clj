@@ -66,4 +66,8 @@
            (is (= (:exit bad-up) 23))
            (is (not (file-exists "/tmp/gantry-tests/LICENSE")))))
          
+(deftest upload*-test
+         (let [res (upload* ["localhost" "localhost"] "test" "/tmp")]
+           (is (= (count res) 2))
+           (is (= (reduce #(+ %1 (:exit %2)) 0 res) 0))))
 
