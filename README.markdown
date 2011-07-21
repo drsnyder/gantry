@@ -73,11 +73,13 @@ Examples:
 See the source code for more documentation.
     
 ## TODO
-
- + process the results of a command as soon as they are ready. don't wait for the whole agent pool to be derefed
+ + clean up import/requires
  + download/*
  + capture?
+
+## DONE
  + local exec
+ + process the results of a command as soon as they are ready. don't wait for the whole agent pool to be derefed (using future insteaf of agents)
 
 ## License
 
