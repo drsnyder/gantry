@@ -160,4 +160,5 @@
         hosts (resource-to-hosts resource :tags tags)]
     (doall (upload* hosts srcs dest 
                     (merge (get-args (get-config)) 
-                           {:cb (fn [h] (log-multi-line :info (:host h) (validate cmd h)))})))))
+                           {:cb (fn [h] (log-multi-line :info (:host h) (validate dest h)))})))))
+
