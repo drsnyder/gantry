@@ -4,9 +4,10 @@
         clojure.java.io
         clojure.contrib.str-utils
         gantry.log)
-  (:require clojure.contrib.io
-            clojure.contrib.java-utils
-            clojure.contrib.shell))
+  (:require [clojure.string :as str]
+            [clojure.java.shell :as shell]
+            clojure.contrib.io
+            clojure.contrib.java-utils))
 
 
 (defn hash-flip [ht]
@@ -73,31 +74,6 @@
             (recur (get groups :pending) (concat done (get groups :done)))))
         (map #(deref %) done)))))
 
-(defn agent-pool 
-  "Creates an agent pool of size (count aseq) initialized with each i of aseq."
-  [aseq]
-  (doall (map #(agent %) aseq)))
-
-
-(defn wait-agent-pool 
-  "Waits for the agents of an agent pool to complete. You can optionally specify a timeout. 
-  The default is 1000000."
-  [agents & timeout]
-  (if timeout
-    (apply await-for timeout agents)
-    (apply await-for 100000 agents)))
-
-
-(defn map-agent-pool 
-  "Map function f across agent pool agents. Calls (send-off agent f)."
-  [f agents]
-  (doseq [a agents] (send-off a f)))
-
-
-(defn deref-agent-pool 
-  "Deref an agent pool."
-  [agents]
-  (doall (map #(deref %) agents)))
 
 (defn- user [h] (:user h))
 
@@ -120,9 +96,9 @@
   (do (debug 
         (format "==> sending '%s' to h=%s:%s user=%s id=%s" cmd host (port args) (user args) (ssh-key args)))
         (assoc 
-          (apply clojure.contrib.shell/sh 
+          (apply shell/sh 
                  (flatten [(gen-ssh-cmd (ssh-key args) (port args)) 
-                           (gen-host-addr (user args) host) cmd :return-map true])) :host host)))
+                           (gen-host-addr (user args) host) cmd])) :host host)))
 
 
 
@@ -168,14 +144,9 @@
   (do (debug (format "==> uploading src %s to h=%s:%s => %s user=%s id=%s" 
                      (str srcs) host (port args) dest (user args) (ssh-key args)))
     (assoc 
-      (apply clojure.contrib.shell/sh 
-             (flatten [(gen-rsync-cmd host srcs dest args) [:return-map true]])) :host host)))
+      (apply shell/sh 
+             (flatten [(gen-rsync-cmd host srcs dest args)])) :host host)))
 
-  ;[hosts cmd & [args]]
-  ;(let [c (fn [h] (remote h cmd args))
-  ;      cb (get args :cb)
-  ;      vcb (if (fn? cb) cb (fn [r] r))]
-  ;  (gpmap c vcb hosts)))
 
 (defn upload* 
   "Invokes upload with srcs and dest for each host in hosts. See upload Returns a seq of HashMaps, one for
@@ -191,11 +162,19 @@
       (gpmap c vcb hosts))))
 
 
+; ht to getwoven/crane
+(defn split-cmd 
+  [cmd]
+  (if (string? cmd)
+    (str/split cmd #"\s+")
+    cmd))
+
+
 (defn local 
   "Execute the given cmd locally.  Returns a hashmap with keys :exit, :out, and :err.
   "
   [cmd]
-  (clojure.contrib.shell/sh cmd :return-map true))
+  (apply shell/sh (split-cmd cmd)))
 
 
 (defn success? 

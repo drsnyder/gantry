@@ -1,8 +1,8 @@
 (ns gantry.core-test
   (:use clojure.test
      gantry.core)
-  (:require clojure.contrib.io
-     clojure.contrib.shell))
+  (:require 
+     clojure.contrib.io))
 
 
 (deftest gen-ssh-cmd-test
@@ -50,24 +50,24 @@
 
 
 (deftest upload-test
-         (clojure.contrib.shell/sh "rm" "-rf" "/tmp/gantry-tests")
+         (local "rm -rf /tmp/gantry-tests")
          (let [up (upload "localhost" "LICENSE" "/tmp/gantry-tests/")]
            (is (= (:exit up) 0))
            (is (file-exists "/tmp/gantry-tests/LICENSE")))
 
-         (clojure.contrib.shell/sh "rm" "-rf" "/tmp/gantry-tests")
+         (local "rm -rf /tmp/gantry-tests")
          (let [ups (upload "localhost" ["LICENSE" "project.clj"] "/tmp/gantry-tests/")]
            (is (= (:exit ups) 0))
            (is (file-exists "/tmp/gantry-tests/LICENSE"))
            (is (file-exists "/tmp/gantry-tests/project.clj")))
 
-         (clojure.contrib.shell/sh "rm" "-rf" "/tmp/gantry-tests")
+         (local "rm -rf /tmp/gantry-tests")
          (let [bad-up (upload "localhost" "file-does-not-exist" "/tmp/gantry-tests/")]
            (is (= (:exit bad-up) 23))
            (is (not (file-exists "/tmp/gantry-tests/LICENSE")))))
          
 (deftest upload*-test
-         (clojure.contrib.shell/sh "rm" "-rf" "/tmp/upload-star-test")
+         (local "rm -rf /tmp/upload-star-test")
          (let [res (upload* ["localhost" "localhost"] "test" "/tmp/upload-star-test")]
            (is (= (count res) 2))
            (is (= (reduce #(+ %1 (:exit %2)) 0 res) 0))))

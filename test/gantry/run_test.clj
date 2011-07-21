@@ -1,6 +1,7 @@
 (ns gantry.run-test
   (:use clojure.test
         [clojure.contrib.condition :only [handler-case raise print-stack-trace *condition*]]
+        gantry.core
         gantry.run))
 
 (def a-config (create-config 
@@ -50,7 +51,7 @@
                                                 :caught))))))
 
 (deftest config-push-test
-         (clojure.contrib.shell/sh "rm" "-rf" "/tmp/gantry-push-test")
+         (local "/bin/rm -rf /tmp/gantry-push-test")
          (binding [*config* l-config]
            (let [ret (push "test" "/tmp/gantry-push-test")]
              (is (= (count ret) (count (get-resource (get-config))))))))
