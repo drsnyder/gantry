@@ -56,9 +56,7 @@
     (> (count (filter valid-str (:tasks opts))) 0)))
 
 (defn shutdown [code]
-  (do 
-    (shutdown-agents)
-    (System/exit code)))
+    (System/exit code))
 
 (defn do-the-work [args opts]
   (if (valid-opts opts)
