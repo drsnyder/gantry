@@ -1,4 +1,4 @@
-(defproject gantry "0.0.1-SNAPSHOT"
+(defproject gantry "0.1.0-SNAPSHOT"
   :description "Operations support and deployment in clojure"
   :dependencies [[clojure "1.2.0"]
                  [clojure-contrib "1.2.0"]
