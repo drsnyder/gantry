@@ -1,5 +1,6 @@
 (ns gantry.scm-git-test
   (:use clojure.test
+     [clojure.string :only [trim-newline]]
      gantry.core
      [gantry.scm.git :as git])
   (:require 
@@ -23,3 +24,15 @@
          (let [c (git/checkout "localhost" "git@github.com:drsnyder/gantry.git" "/tmp/gantry.checkout.src")]
            (is (= (:exit c) 0))
            (is (file-exists "/tmp/gantry.checkout.src/project.clj"))))
+
+;
+(deftest checkout-branch-test
+         (local "rm -rf /tmp/gantry.checkout.src")
+         (let [c (git/checkout "localhost" "git@github.com:drsnyder/gantry.git" "/tmp/gantry.checkout.src" "4bc2ed2b83c6dadff4fc1bd05de848ff9b452f4d")]
+           (is (= (:exit c) 0))
+           (is (file-exists "/tmp/gantry.checkout.src/project.clj")))
+
+         (let [rev (:out (remote "localhost" "cd /tmp/gantry.checkout.src && git rev-parse HEAD"))]
+           (is (= (trim-newline rev) "4bc2ed2b83c6dadff4fc1bd05de848ff9b452f4d"))))
+
+            
