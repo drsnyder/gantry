@@ -4,3 +4,4 @@
 (defn checkout
   [hosts src dst scm &[branch]] 
   (scm hosts src dst branch))
+
