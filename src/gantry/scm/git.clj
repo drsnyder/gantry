@@ -18,5 +18,5 @@
   [host src dst &[branch]]
   (first (clone* [host] src dst branch)))
 
-(def checkout clone)
-(def checkout* clone*)
+(def git-checkout clone)
+(def git-checkout* clone*)
