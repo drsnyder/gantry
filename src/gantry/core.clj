@@ -37,7 +37,7 @@
   [& [ id port]] 
     (concat 
       (if id
-        ["ssh" "-o" "StrictHostKeyChecking=no" "-i" id]
+        ["ssh" "-o" "StrictHostKeyChecking no" "-i" id]
         ["ssh"])
       (if port
         ["-p" (str port)]
